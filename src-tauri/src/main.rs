@@ -32,7 +32,16 @@ fn main() {
             ipc::commands::save_fatal_diagnostic_report,
             ipc::commands::playlist_next,
             ipc::commands::playlist_prev,
-            ipc::commands::list_plugins
+            ipc::commands::list_plugins,
+            ipc::commands::toggle_plugin,
+            ipc::commands::get_plugin_detail,
+            ipc::commands::capture_screenshot,
+            ipc::subtitle::search_subtitles,
+            ipc::subtitle::download_subtitle,
+            ipc::mediainfo::get_media_info,
+            ipc::bookmark::list_bookmarks,
+            ipc::bookmark::add_bookmark,
+            ipc::bookmark::delete_bookmark
         ])
         .setup(|app| {
             if let Err(startup_error) = mpv::core::startup_probe() {
@@ -42,6 +51,14 @@ fn main() {
                 {
                     eprintln!("failed to report startup fatal error: {report_error}");
                 }
+            }
+
+            // Initialize the plugin system.
+            {
+                let app_state = app.state::<ipc::state::AppState>();
+                let mut bus = app_state.plugin_bus.lock().unwrap();
+                let mut registry = app_state.plugin_registry.lock().unwrap();
+                plugin::init(app.handle(), &mut bus, &mut registry);
             }
 
             #[cfg(debug_assertions)]

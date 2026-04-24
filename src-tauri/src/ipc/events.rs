@@ -7,6 +7,9 @@ pub const EVT_PLAYER_STATE_CHANGE: &str = "player:state_change";
 pub const EVT_PLAYER_PROGRESS: &str = "player:progress";
 pub const EVT_VIDEO_ERROR: &str = "video:error";
 pub const EVT_APP_FATAL_ERROR: &str = "app:fatal_error";
+pub const EVT_PLUGIN_STATE_CHANGED: &str = "plugin:state_changed";
+pub const EVT_PLUGIN_INSTALLED: &str = "plugin:installed";
+pub const EVT_PLUGIN_ERROR: &str = "plugin:error";
 
 #[derive(Debug, Clone, Serialize)]
 pub struct PlayerStateChangePayload {
@@ -65,6 +68,48 @@ pub fn emit_video_error<R: Runtime>(
     payload: &VideoErrorPayload,
 ) -> Result<(), String> {
     emit_event(app, EVT_VIDEO_ERROR, payload)
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct PluginStateChangedPayload {
+    pub name: String,
+    pub enabled: bool,
+    pub error_count: u32,
+    pub last_error: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct PluginInstalledPayload {
+    pub name: String,
+    pub version: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct PluginErrorPayload {
+    pub name: String,
+    pub code: String,
+    pub message: String,
+}
+
+pub fn emit_plugin_state_changed<R: Runtime>(
+    app: &AppHandle<R>,
+    payload: &PluginStateChangedPayload,
+) -> Result<(), String> {
+    emit_event(app, EVT_PLUGIN_STATE_CHANGED, payload)
+}
+
+pub fn emit_plugin_installed<R: Runtime>(
+    app: &AppHandle<R>,
+    payload: &PluginInstalledPayload,
+) -> Result<(), String> {
+    emit_event(app, EVT_PLUGIN_INSTALLED, payload)
+}
+
+pub fn emit_plugin_error<R: Runtime>(
+    app: &AppHandle<R>,
+    payload: &PluginErrorPayload,
+) -> Result<(), String> {
+    emit_event(app, EVT_PLUGIN_ERROR, payload)
 }
 
 pub fn emit_app_fatal_error<R: Runtime>(

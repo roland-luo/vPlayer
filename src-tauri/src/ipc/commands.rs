@@ -5,6 +5,7 @@ use crate::ipc::events;
 use crate::ipc::state::{AppState, PlayerState, PlaylistState, StartupFatalState};
 use crate::mpv::{core, renderer};
 use crate::plugin::registry::PluginInfo;
+use crate::plugin::PluginState;
 use crate::utils::paths;
 
 fn reveal_file_in_file_manager(path: &std::path::Path) -> Result<(), String> {
@@ -254,6 +255,74 @@ pub async fn list_plugins(app_state: State<'_, AppState>) -> Result<Vec<PluginIn
 }
 
 #[tauri::command]
+pub async fn toggle_plugin(
+    app: AppHandle,
+    name: String,
+    enabled: bool,
+    app_state: State<'_, AppState>,
+) -> Result<(), String> {
+    app_state
+        .plugin_registry
+        .lock()
+        .map_err(|e| format!("plugin registry lock poisoned: {e}"))?
+        .set_enabled(&name, enabled);
+
+    // Also update the bus's plugin instance state.
+    let mut bus = app_state
+        .plugin_bus
+        .lock()
+        .map_err(|e| format!("plugin bus lock poisoned: {e}"))?;
+    if let Some(instance) = bus.get_mut(&name) {
+        let next_state = if enabled {
+            // If re-enabling a crashed plugin, reset its error state.
+            if instance.state == crate::plugin::PluginState::Crashed {
+                instance.error_count = 0;
+                instance.last_error = None;
+            }
+            PluginState::Enabled
+        } else {
+            PluginState::Disabled
+        };
+        instance.state = next_state;
+    }
+
+    // Emit state_changed event to frontend.
+    let registry = app_state
+        .plugin_registry
+        .lock()
+        .map_err(|e| format!("plugin registry lock poisoned: {e}"))?;
+    if let Some(info) = registry.get(&name) {
+        let _ = events::emit_plugin_state_changed(
+            &app,
+            &events::PluginStateChangedPayload {
+                name: info.name.clone(),
+                enabled: info.enabled,
+                error_count: info.error_count,
+                last_error: info.last_error.clone(),
+            },
+        );
+    }
+
+    eprintln!("[plugin] toggled '{name}' -> enabled={enabled}");
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn get_plugin_detail(
+    name: String,
+    app_state: State<'_, AppState>,
+) -> Result<PluginInfo, String> {
+    let registry = app_state
+        .plugin_registry
+        .lock()
+        .map_err(|e| format!("plugin registry lock poisoned: {e}"))?;
+    registry
+        .get(&name)
+        .cloned()
+        .ok_or_else(|| format!("plugin '{name}' not found"))
+}
+
+#[tauri::command]
 pub async fn get_startup_fatal_error(
     app_state: State<'_, AppState>,
 ) -> Result<Option<StartupFatalState>, String> {
@@ -344,6 +413,105 @@ pub async fn open_log_directory(app: AppHandle) -> Result<String, String> {
         .map_err(|e| format!("open log dir failed: {e}"))?;
 
     Ok(dir.display().to_string())
+}
+
+#[tauri::command]
+pub async fn capture_screenshot(
+    app: AppHandle,
+    app_state: State<'_, AppState>,
+) -> Result<String, String> {
+    // Get current video path and position from player state.
+    let (path, position) = {
+        let state = app_state
+            .player
+            .lock()
+            .map_err(|e| format!("state lock poisoned: {e}"))?;
+        let playlist = app_state
+            .playlist
+            .lock()
+            .map_err(|e| format!("playlist lock poisoned: {e}"))?;
+        let current_path = playlist
+            .current_index
+            .and_then(|idx| playlist.items.get(idx))
+            .cloned()
+            .ok_or_else(|| "no video is currently playing".to_string())?;
+        (current_path, state.position)
+    };
+
+    let timestamp = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_err(|e| format!("system time before epoch: {e}"))?
+        .as_millis();
+    let default_name = format!("screenshot-{timestamp}.png");
+
+    // Extract frame to a temp file via ffmpeg.
+    let temp_dir = std::env::temp_dir();
+    let temp_path = temp_dir.join(&default_name);
+    let output = std::process::Command::new("ffmpeg")
+        .arg("-ss")
+        .arg(format!("{:.3}", position))
+        .arg("-i")
+        .arg(&path)
+        .arg("-vframes")
+        .arg("1")
+        .arg("-q:v")
+        .arg("2")
+        .arg("-y")
+        .arg(&temp_path)
+        .output()
+        .map_err(|e| format!("failed to execute ffmpeg: {e}"))?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(format!("ffmpeg failed: {stderr}"));
+    }
+
+    // Show native Save As dialog.
+    let save_path = rfd::FileDialog::new()
+        .set_title("Save Screenshot")
+        .set_file_name(&default_name)
+        .add_filter("PNG Image", &["png"])
+        .save_file();
+
+    let final_path = match save_path {
+        Some(chosen) => {
+            std::fs::copy(&temp_path, &chosen)
+                .map_err(|e| format!("failed to save screenshot: {e}"))?;
+            let _ = std::fs::remove_file(&temp_path);
+            chosen
+        }
+        None => {
+            // User cancelled the dialog — keep the temp file anyway.
+            let _ = std::fs::remove_file(&temp_path);
+            return Err("screenshot cancelled".to_string());
+        }
+    };
+
+    // Emit event through the plugin system and forward failures to frontend.
+    {
+        let mut bus = app_state
+            .plugin_bus
+            .lock()
+            .map_err(|e| format!("plugin bus lock poisoned: {e}"))?;
+        let event = crate::plugin::PluginEvent::with_payload(
+            "screenshot:captured",
+            serde_json::json!({ "path": final_path.to_string_lossy() }),
+        );
+        let report = bus.emit(&event);
+        for failed in &report.failed_plugins {
+            let _ = events::emit_plugin_error(
+                &app,
+                &events::PluginErrorPayload {
+                    name: failed.clone(),
+                    code: "PLUGIN_CRASHED".to_string(),
+                    message: format!("plugin '{failed}' crashed while handling screenshot:captured"),
+                },
+            );
+        }
+    }
+
+    eprintln!("[screenshot] saved to: {}", final_path.display());
+    Ok(final_path.to_string_lossy().to_string())
 }
 
 #[tauri::command]

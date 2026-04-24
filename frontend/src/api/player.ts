@@ -24,6 +24,12 @@ export type PluginInfo = {
   name: string;
   version: string;
   enabled: boolean;
+  error_count: number;
+  last_error: string | null;
+  ui_button_label: string | null;
+  ui_button_icon: string | null;
+  ui_popup_width: number | null;
+  ui_popup_height: number | null;
 };
 
 export async function playFile(path: string): Promise<string> {
@@ -96,4 +102,70 @@ export async function playlistNext(): Promise<string | null> {
 
 export async function playlistPrev(): Promise<string | null> {
   return invoke("playlist_prev");
+}
+
+export async function togglePlugin(name: string, enabled: boolean): Promise<void> {
+  return invoke("toggle_plugin", { name, enabled });
+}
+
+export async function getPluginDetail(name: string): Promise<PluginInfo> {
+  return invoke("get_plugin_detail", { name });
+}
+
+export async function captureScreenshot(): Promise<string> {
+  return invoke("capture_screenshot");
+}
+
+export type SubtitleSearchResult = {
+  name: string;
+  language: string;
+  format: string;
+  source: string;
+  path: string;
+};
+
+export async function searchSubtitles(query?: string): Promise<SubtitleSearchResult[]> {
+  return invoke("search_subtitles", { query: query ?? null });
+}
+
+export async function downloadSubtitle(sourcePath: string): Promise<string> {
+  return invoke("download_subtitle", { sourcePath });
+}
+
+export type MediaInfoResult = {
+  container: string;
+  duration: string;
+  size: string;
+  bit_rate: string;
+  video_codec: string;
+  video_resolution: string;
+  video_bitrate: string;
+  video_fps: string;
+  audio_codec: string;
+  audio_channels: string;
+  audio_sample_rate: string;
+};
+
+export async function getMediaInfo(): Promise<MediaInfoResult> {
+  return invoke("get_media_info");
+}
+
+export type BookmarkEntry = {
+  id: string;
+  name: string;
+  video: string;
+  position: number;
+  created_at: number;
+};
+
+export async function listBookmarks(): Promise<BookmarkEntry[]> {
+  return invoke("list_bookmarks");
+}
+
+export async function addBookmark(name: string): Promise<BookmarkEntry> {
+  return invoke("add_bookmark", { name });
+}
+
+export async function deleteBookmark(id: string): Promise<void> {
+  return invoke("delete_bookmark", { id });
 }

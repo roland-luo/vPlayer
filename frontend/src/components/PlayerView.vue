@@ -38,12 +38,14 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
+import { captureScreenshot as captureScreenshotApi } from "../api/player";
 import { convertFileSrc } from "@tauri-apps/api/core";
 
 const props = defineProps<{
   isPlaying: boolean;
   sourcePath: string;
   volume: number;
+  playbackRate?: number;
 }>();
 
 const emit = defineEmits<{
@@ -150,10 +152,30 @@ watch(
   { immediate: true },
 );
 
+watch(
+  () => props.playbackRate,
+  (rate) => {
+    if (!videoEl.value || !rate) return;
+    videoEl.value.playbackRate = Math.max(0.1, Math.min(16, rate));
+  },
+  { immediate: false },
+);
+
+async function captureScreenshot(): Promise<string> {
+  return captureScreenshotApi();
+}
+
+function setPlaybackSpeed(rate: number) {
+  if (!videoEl.value) return;
+  videoEl.value.playbackRate = Math.max(0.1, Math.min(16, rate));
+}
+
 defineExpose({
   seekTo,
   tryPlay,
   pausePlayback,
+  captureScreenshot,
+  setPlaybackSpeed,
 });
 </script>
 

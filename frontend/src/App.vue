@@ -2,12 +2,13 @@
   <div class="player-app">
     <TopHud :title="currentTitle" :meta="mediaMeta" :is-playing="isPlaying" :playlist-status="playlistStatus"
       @open-file="handleOpenFile" @debug-error="handleDebugError" @debug-fatal="handleDebugFatal"
-      @prev-file="handlePrevFile" @next-file="handleNextFile" />
+      @prev-file="handlePrevFile" @next-file="handleNextFile" @toggle-plugins="showPluginPanel = !showPluginPanel" />
     <PlayerView ref="playerViewRef" :is-playing="isPlaying" :source-path="currentMediaPath" :volume="volume"
-      @play="handlePlay" @pause="handlePause" @progress="handleViewProgress" @loaded-metadata="handleLoadedMetadata"
-      @ended="handleViewEnded" @video-error="handleVideoElementError" />
+      :playback-rate="playbackSpeed" @play="handlePlay" @pause="handlePause" @progress="handleViewProgress"
+      @loaded-metadata="handleLoadedMetadata" @ended="handleViewEnded" @video-error="handleVideoElementError" />
     <ControlBar :is-playing="isPlaying" :current-time="currentTime" :duration="duration" :volume="volume"
-      @toggle-play="togglePlay" @seek="handleSeek" @volume-change="handleVolumeChange" />
+      :plugins="plugins" @toggle-play="togglePlay" @seek="handleSeek" @volume-change="handleVolumeChange"
+      @screenshot="handleScreenshot" @plugin-click="openPluginPopup" />
     <div v-if="videoError" class="video-error-overlay">
       <div class="video-error-card">
         <div class="video-error-title">Video Error</div>
@@ -16,6 +17,42 @@
         <button class="video-error-dismiss" @click="clearVideoError">Dismiss</button>
       </div>
     </div>
+    <!-- Plugin panel slide-out -->
+    <Transition name="panel-slide">
+      <div v-if="showPluginPanel" class="plugin-panel-overlay" @click.self="showPluginPanel = false">
+        <div class="plugin-panel">
+          <div class="plugin-panel-head">
+            <span class="plugin-panel-title">Plugin Manager</span>
+            <button class="plugin-panel-close" @click="showPluginPanel = false">&times;</button>
+          </div>
+          <div class="plugin-panel-body">
+            <PluginManager :key="pluginManagerKey" />
+          </div>
+        </div>
+      </div>
+    </Transition>
+
+    <!-- Plugin popup -->
+    <PluginPopup
+      :plugin-name="pluginPopupName"
+      :visible="pluginPopupVisible"
+      :popup-width="pluginPopupWidth"
+      :popup-height="pluginPopupHeight"
+      :playback-speed="playbackSpeed"
+      @close="pluginPopupVisible = false"
+      @downloaded="handleSubtitleDownloaded"
+      @speed-change="handleSpeedChange"
+      @seek="handleSeek"
+    />
+
+    <!-- Screenshot toast -->
+    <Transition name="toast-fade">
+      <div v-if="toastVisible" class="screenshot-toast">
+        <span class="screenshot-toast-icon">[IMG]</span>
+        {{ toastMessage }}
+      </div>
+    </Transition>
+
     <div v-if="fatalError" class="fatal-error-overlay">
       <div class="fatal-error-card">
         <div class="fatal-error-title">Fatal Startup Error</div>
@@ -57,6 +94,8 @@ import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import TopHud from "./components/TopHud.vue";
 import PlayerView from "./components/PlayerView.vue";
 import ControlBar from "./components/ControlBar.vue";
+import PluginManager from "./components/PluginManager.vue";
+import PluginPopup from "./components/PluginPopup.vue";
 import {
   type AppFatalError,
   emitDebugVideoError,
@@ -65,6 +104,7 @@ import {
   getPlaylistState,
   getPlayerState,
   getStartupFatalError,
+  listPlugins,
   openLogDirectory,
   pause,
   pickAndPlayFile,
@@ -77,6 +117,7 @@ import {
   setVolume,
   type PlaylistState,
   type PlayerState,
+  type PluginInfo,
 } from "./api/player";
 
 const playerState = ref<PlayerState>({
@@ -115,9 +156,33 @@ const playlistState = ref<PlaylistState>({
 const rafId = ref<number | null>(null);
 const playbackAnchorPosition = ref(0);
 const playbackAnchorTs = ref(0);
+const showPluginPanel = ref(false);
+const pluginPopupName = ref("");
+const pluginPopupVisible = ref(false);
+const toastMessage = ref("");
+const toastVisible = ref(false);
+let toastTimer: ReturnType<typeof setTimeout> | null = null;
+
+const playbackSpeed = ref(1.0);
+
+const plugins = ref<PluginInfo[]>([]);
+const pluginManagerKey = ref(0);
+const pluginPopupWidth = ref(400);
+const pluginPopupHeight = ref(300);
+
+function showToast(message: string) {
+  toastMessage.value = message;
+  toastVisible.value = true;
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
+    toastVisible.value = false;
+  }, 3000);
+}
 type PlayerViewExpose = ComponentPublicInstance & {
   seekTo: (position: number) => void;
   tryPlay: () => Promise<void>;
+  captureScreenshot: () => Promise<string>;
+  setPlaybackSpeed: (speed: number) => void;
 };
 const playerViewRef = ref<PlayerViewExpose | null>(null);
 
@@ -163,6 +228,34 @@ function clearFatalError() {
   fatalActionHint.value = "";
   retryFailureCount.value = 0;
   lastRetryFailureAt.value = null;
+}
+
+async function fetchPlugins() {
+  if (!isTauriRuntime) return;
+  try {
+    plugins.value = await listPlugins();
+  } catch (e) {
+    console.debug("[plugins] failed to fetch", e);
+  }
+}
+
+function openPluginPopup(name: string) {
+  const plugin = plugins.value.find((p) => p.name === name);
+  pluginPopupName.value = name;
+  pluginPopupWidth.value = plugin?.ui_popup_width ?? 400;
+  pluginPopupHeight.value = plugin?.ui_popup_height ?? 300;
+  pluginPopupVisible.value = true;
+}
+
+function handleSubtitleDownloaded(path: string) {
+  const filename = path.split(/[\\/]/).pop() || path;
+  showToast(`字幕已下载: ${filename}`);
+}
+
+function handleSpeedChange(speed: number) {
+  playbackSpeed.value = speed;
+  playerViewRef.value?.setPlaybackSpeed(speed);
+  showToast(`播放速度: ${speed.toFixed(2)}x`);
 }
 
 function formatEventTimestamp(ts: number | null) {
@@ -407,6 +500,18 @@ async function handleRetryStartup() {
   }
 }
 
+async function handleScreenshot() {
+  if (!isTauriRuntime || !playerViewRef.value) return;
+  try {
+    const path = await playerViewRef.value.captureScreenshot();
+    const filename = path.split(/[\\/]/).pop() || path;
+    showToast(`Screenshot saved: ${filename}`);
+  } catch (error) {
+    console.debug("[screenshot] capture failed", error);
+    showToast("Screenshot failed");
+  }
+}
+
 async function handlePrevFile() {
   if (!isTauriRuntime) return;
   try {
@@ -535,6 +640,42 @@ onMounted(async () => {
     });
     unlistenFns.push(unlistenFatalError);
     listenerFatalErrorReady.value = true;
+
+    // Plugin event listeners
+    const unlistenPluginState = await listen<{
+      name: string;
+      enabled: boolean;
+      error_count: number;
+      last_error: string | null;
+    }>("plugin:state_changed", () => {
+      pluginManagerKey.value++;
+      fetchPlugins();
+    });
+    unlistenFns.push(unlistenPluginState);
+
+    const unlistenPluginError = await listen<{
+      name: string;
+      code: string;
+      message: string;
+    }>("plugin:error", (event) => {
+      const msg = event.payload.message || "Plugin error";
+      showToast(`Plugin error: ${msg}`);
+      pluginManagerKey.value++;
+      fetchPlugins();
+    });
+    unlistenFns.push(unlistenPluginError);
+
+    const unlistenPluginInstalled = await listen<{
+      name: string;
+      version: string;
+    }>("plugin:installed", (event) => {
+      showToast(`Plugin installed: ${event.payload.name} v${event.payload.version}`);
+      pluginManagerKey.value++;
+      fetchPlugins();
+    });
+    unlistenFns.push(unlistenPluginInstalled);
+
+    await fetchPlugins();
   } catch (error) {
     console.debug("[state-sync] failed to initialize tauri event sync", error);
   }
@@ -695,5 +836,123 @@ onUnmounted(() => {
   font-family: var(--font-mono);
   font-size: 11px;
   color: #ffd1cb;
+}
+
+/* Plugin panel slide-out */
+.plugin-panel-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 25;
+  background: rgba(6, 6, 10, 0.4);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.plugin-panel {
+  width: 320px;
+  height: 100%;
+  background: rgba(12, 12, 18, 0.96);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-left: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  box-shadow: -8px 0 24px rgba(0, 0, 0, 0.4);
+}
+
+.plugin-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+}
+
+.plugin-panel-title {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-primary);
+}
+
+.plugin-panel-close {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 20px;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+}
+
+.plugin-panel-close:hover {
+  color: var(--text-primary);
+}
+
+.plugin-panel-body {
+  flex: 1;
+  padding: 12px 14px;
+  overflow-y: auto;
+}
+
+/* Slide transition */
+.panel-slide-enter-active,
+.panel-slide-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.panel-slide-enter-active .plugin-panel,
+.panel-slide-leave-active .plugin-panel {
+  transition: transform 0.2s ease;
+}
+
+.panel-slide-enter-from,
+.panel-slide-leave-to {
+  opacity: 0;
+}
+
+.panel-slide-enter-from .plugin-panel,
+.panel-slide-leave-to .plugin-panel {
+  transform: translateX(100%);
+}
+
+/* Screenshot toast */
+.screenshot-toast {
+  position: absolute;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 60;
+  background: rgba(0, 229, 255, 0.12);
+  border: 1px solid rgba(0, 229, 255, 0.3);
+  border-radius: var(--radius-md);
+  padding: 8px 16px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--accent-cyan);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+.screenshot-toast-icon {
+  opacity: 0.7;
+  font-size: 10px;
+}
+
+.toast-fade-enter-active,
+.toast-fade-leave-active {
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.toast-fade-enter-from,
+.toast-fade-leave-to {
+  opacity: 0;
+  transform: translateX(-50%) translateY(8px);
 }
 </style>

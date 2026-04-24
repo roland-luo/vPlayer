@@ -13,6 +13,7 @@
       </span>
       <button class="hud-debug-btn" @click="$emit('debug-error')">DebugError</button>
       <button class="hud-debug-btn" @click="$emit('debug-fatal')">DebugFatal</button>
+      <button class="hud-plugin-btn" @click="$emit('toggle-plugins')">Plugins</button>
       <span class="hud-item">PL {{ playlistStatus }}</span>
       <span class="hud-item">{{ meta.audio }}</span>
       <span class="hud-item">{{ meta.codec }}</span>
@@ -43,6 +44,7 @@ defineEmits<{
   (e: "debug-fatal"): void;
   (e: "prev-file"): void;
   (e: "next-file"): void;
+  (e: "toggle-plugins"): void;
 }>();
 </script>
 
@@ -140,6 +142,25 @@ defineEmits<{
 .hud-debug-btn:hover {
   border-color: rgba(255, 82, 82, 0.75);
   box-shadow: 0 0 10px rgba(255, 82, 82, 0.2);
+}
+
+.hud-plugin-btn {
+  pointer-events: auto;
+  background: transparent;
+  border: 1px solid rgba(0, 229, 255, 0.35);
+  color: var(--accent-cyan);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 3px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.hud-plugin-btn:hover {
+  border-color: rgba(0, 229, 255, 0.7);
+  box-shadow: 0 0 10px rgba(0, 229, 255, 0.2);
 }
 
 .hud-item {

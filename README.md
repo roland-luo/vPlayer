@@ -7,7 +7,7 @@
 ```bash
 cd frontend
 pnpm install
-pnpm tauri dev
+pnpm tauri:dev
 ```
 
 如果启动成功，你会看到桌面窗口，并且前端开发服务运行在 `http://localhost:5175`。
@@ -37,7 +37,7 @@ pnpm install
 1. 启动桌面应用（会自动拉起 Vite dev server + Tauri）
 
 ```bash
-pnpm tauri dev
+pnpm tauri:dev
 ```
 
 ## 单独启动前端（可选）
@@ -131,5 +131,5 @@ pnpm dev
 
 ```bash
 cd frontend
-pnpm tauri dev
+pnpm tauri:dev
 ```
