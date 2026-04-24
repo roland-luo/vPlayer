@@ -1,0 +1,6 @@
+*.DS_Store
+scripts/
+src-tauri/target
+frontend/node_modules
+frontend/dist
+frontend/coverage

@@ -1,0 +1,45 @@
+{
+  "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
+  "productName": "vPlayer",
+  "version": "0.1.0",
+  "identifier": "com.vplayer.app",
+  "build": {
+    "frontendDist": "../frontend/dist",
+    "devUrl": "http://localhost:5175",
+    "beforeDevCommand": "if [ -d ../frontend ]; then cd ../frontend; elif [ -d frontend ]; then cd frontend; elif [ -d ../../frontend ]; then cd ../../frontend; else echo 'frontend dir not found'; exit 1; fi; pnpm dev",
+    "beforeBuildCommand": "if [ -d ../frontend ]; then cd ../frontend; elif [ -d frontend ]; then cd frontend; elif [ -d ../../frontend ]; then cd ../../frontend; else echo 'frontend dir not found'; exit 1; fi; pnpm build"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "vPlayer",
+        "width": 1280,
+        "height": 720,
+        "transparent": true,
+        "decorations": true,
+        "center": true,
+        "resizable": true,
+        "fullscreen": false
+      }
+    ],
+    "security": {
+      "csp": null,
+      "assetProtocol": {
+        "enable": true,
+        "scope": [
+          "$HOME/**",
+          "$DESKTOP/**",
+          "$DOCUMENT/**",
+          "$DOWNLOAD/**",
+          "$VIDEO/**"
+        ]
+      },
+      "capabilities": ["default"]
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": ["icons/32x32.png"]
+  }
+}
