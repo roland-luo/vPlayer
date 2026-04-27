@@ -47,10 +47,20 @@
 | 　　・滑块连续调节 | `PlaybackSpeedView.vue` | ✅ |
 | 　　・HTML5 video.playbackRate 控制 | `PlayerView.vue` | ✅ |
 | 　　・速度变更 Toast 反馈 | `App.vue` | ✅ |
+| **Chapter** — 章节导航 | `builtin/chapter.rs` | ✅ |
+| 　　・ffprobe 提取视频章节标记 | `ipc/chapter.rs` | ✅ |
+| 　　・章节列表显示 + 点击跳转 | `ChapterView.vue` | ✅ |
+| 　　・加载中 / 空 / 错误状态 | `ChapterView.vue` | ✅ |
 | **Bookmark** — 书签 | `builtin/bookmark.rs` | ✅ |
 | 　　・添加/删除书签（持久化 JSON 存储） | `ipc/bookmark.rs` | ✅ |
 | 　　・点击书签跳转到对应时间点 | `BookmarkView.vue` | ✅ |
 | 　　・加载中 / 空 / 错误状态 | `BookmarkView.vue` | ✅ |
+| **Equalizer** — 音频均衡器 | `builtin/equalizer.rs` | ✅ |
+| 　　・Web Audio API 8 波段 Peaking 滤波器链 | `useAudioEqualizer.ts` | ✅ |
+| 　　・模块级单例 AudioContext（弹窗关闭不中断） | `useAudioEqualizer.ts` | ✅ |
+| 　　・5 种预设（Flat/Pop/Rock/Jazz/Classical） | `EqualizerView.vue` | ✅ |
+| 　　・垂直滑块逐频段 ±12 dB 调节 | `EqualizerView.vue` | ✅ |
+| 　　・连接状态提示 + 重置按钮 | `EqualizerView.vue` | ✅ |
 
 ### IPC / 前后端通信
 | 功能 | 文件 | 状态 |
@@ -66,6 +76,7 @@
 | `search_subtitles` / `download_subtitle` | `ipc/subtitle.rs` | ✅ |
 | `get_media_info` | `ipc/mediainfo.rs` | ✅ |
 | `list_bookmarks` / `add_bookmark` / `delete_bookmark` | `ipc/bookmark.rs` | ✅ |
+| `list_chapters` | `ipc/chapter.rs` | ✅ |
 | `capture_screenshot` | `ipc/commands.rs` | ✅ |
 | 崩溃插件恢复（重启用重置 error_count） | `ipc/commands.rs` | ✅ |
 
@@ -110,11 +121,6 @@
 ### 更多内置插件（待定）
 | 插件 | 说明 |
 |------|------|
-| 音频均衡器 (Equalizer) | 调节低中高频 |
-| 播放速度控制 (Playback Speed) | 0.5x~2x |
-| 视频信息显示 (Media Info) | 编码/码率/容器详情 |
-| 章节导航 (Chapters) | 基于章节标记跳转 |
-| ~~书签 (Bookmarks)~~ | ~~标记时间点并快速跳转~~ | ✅ |
 | 弹幕 (Danmaku) | 实时评论叠加层 |
 
 ---

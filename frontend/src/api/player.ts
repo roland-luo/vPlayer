@@ -116,6 +116,17 @@ export async function captureScreenshot(): Promise<string> {
   return invoke("capture_screenshot");
 }
 
+export type ChapterEntry = {
+  id: number;
+  title: string;
+  start: number;
+  end: number;
+};
+
+export async function listChapters(): Promise<ChapterEntry[]> {
+  return invoke("list_chapters");
+}
+
 export type SubtitleSearchResult = {
   name: string;
   language: string;

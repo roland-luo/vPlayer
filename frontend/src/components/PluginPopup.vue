@@ -27,6 +27,11 @@
               v-else-if="pluginName === 'bookmark'"
               @seek="onBookmarkSeek"
             />
+            <ChapterView
+              v-else-if="pluginName === 'chapter'"
+              @seek="onBookmarkSeek"
+            />
+            <EqualizerView v-else-if="pluginName === 'equalizer'" />
             <p v-else class="plugin-popup-placeholder">
               {{ pluginName }} plugin content appears here.
             </p>
@@ -44,6 +49,8 @@ import SubtitleSearch from "./SubtitleSearch.vue";
 import MediaInfoView from "./MediaInfoView.vue";
 import PlaybackSpeedView from "./PlaybackSpeedView.vue";
 import BookmarkView from "./BookmarkView.vue";
+import ChapterView from "./ChapterView.vue";
+import EqualizerView from "./EqualizerView.vue";
 
 const props = withDefaults(
   defineProps<{

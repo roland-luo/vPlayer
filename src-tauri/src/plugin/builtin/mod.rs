@@ -1,4 +1,6 @@
 pub mod bookmark;
+pub mod chapter;
+pub mod equalizer;
 pub mod media_info;
 pub mod screenshot;
 pub mod speed;
@@ -15,6 +17,8 @@ pub fn all_builtins() -> Vec<super::PluginInstance> {
         media_info::create(),
         speed::create(),
         bookmark::create(),
+        chapter::create(),
+        equalizer::create(),
     ]
 }
 

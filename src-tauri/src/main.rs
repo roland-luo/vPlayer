@@ -41,7 +41,8 @@ fn main() {
             ipc::mediainfo::get_media_info,
             ipc::bookmark::list_bookmarks,
             ipc::bookmark::add_bookmark,
-            ipc::bookmark::delete_bookmark
+            ipc::bookmark::delete_bookmark,
+            ipc::chapter::list_chapters
         ])
         .setup(|app| {
             if let Err(startup_error) = mpv::core::startup_probe() {
