@@ -56,6 +56,31 @@
         >
           <span class="plugin-btn-label">{{ plugin.ui_button_label ?? plugin.name }}</span>
         </button>
+        <button
+          v-if="hasSubtitles"
+          class="control-btn"
+          @click="$emit('toggle-subtitles')"
+          title="Subtitles"
+        >
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+            <path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zM4 18V6h16v12H4zM6 10h8v2H6zm0 4h12v2H6z"/>
+          </svg>
+        </button>
+        <button
+          v-if="hasAudioTracks"
+          class="control-btn"
+          @click="$emit('toggle-audio-tracks')"
+          title="Audio Tracks"
+        >
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+            <path d="M12 3v9.28c-.47-.17-.97-.28-1.5-.28C8.01 12 6 14.01 6 16.5S8.01 21 10.5 21c2.31 0 4.2-1.75 4.45-4H15V6h4V3h-7z"/>
+          </svg>
+        </button>
+        <button class="control-btn" @click="$emit('toggle-playlist')" title="Playlist">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+            <path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/>
+          </svg>
+        </button>
         <button class="control-btn" @click="openSettings">
           <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
             <path d="M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.5.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1.01c.52.4 1.08.73 1.69.98l.38 2.65c.04.24.25.42.5.42h4c.25 0 .46-.18.5-.42l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1.01c.22.08.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z" />
@@ -82,6 +107,8 @@ const props = defineProps<{
   duration: number;
   volume: number;
   plugins?: PluginInfo[];
+  hasSubtitles?: boolean;
+  hasAudioTracks?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -90,6 +117,9 @@ const emit = defineEmits<{
   (e: "volume-change", volume: number): void;
   (e: "screenshot"): void;
   (e: "plugin-click", name: string): void;
+  (e: "toggle-playlist"): void;
+  (e: "toggle-subtitles"): void;
+  (e: "toggle-audio-tracks"): void;
 }>();
 
 const showControls = ref(true);

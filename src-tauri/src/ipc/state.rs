@@ -2,6 +2,7 @@ use std::sync::Mutex;
 
 use serde::{Deserialize, Serialize};
 
+use crate::config::PlayerSettings;
 use crate::plugin::{bus::PluginBus, registry::PluginRegistry};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -30,6 +31,7 @@ pub struct AppState {
     pub startup_fatal: Mutex<Option<StartupFatalState>>,
     pub plugin_bus: Mutex<PluginBus>,
     pub plugin_registry: Mutex<PluginRegistry>,
+    pub settings: Mutex<PlayerSettings>,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -54,6 +56,7 @@ impl Default for AppState {
             startup_fatal: Mutex::new(None),
             plugin_bus: Mutex::new(PluginBus::default()),
             plugin_registry: Mutex::new(PluginRegistry::default()),
+            settings: Mutex::new(PlayerSettings::default()),
         }
     }
 }

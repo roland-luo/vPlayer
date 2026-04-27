@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vue-tsc && vite build",
     "preview": "vite preview",
-    "tauri:dev": "cd ../src-tauri && ../frontend/node_modules/.bin/tauri dev --config tauri.conf.json"
+    "tauri:dev": "cd ../src-tauri && ../frfontend/node_modules/.bin/tauri dev --config tauri.conf.json"
   },
   "dependencies": {
     "vue": "^3.5.13",

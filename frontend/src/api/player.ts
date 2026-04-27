@@ -40,6 +40,10 @@ export async function pickAndPlayFile(): Promise<string | null> {
   return invoke("pick_and_play_file");
 }
 
+export async function pickSubtitleFile(): Promise<string | null> {
+  return invoke("pick_subtitle_file");
+}
+
 export async function pause(): Promise<void> {
   return invoke("pause");
 }
@@ -179,4 +183,31 @@ export async function addBookmark(name: string): Promise<BookmarkEntry> {
 
 export async function deleteBookmark(id: string): Promise<void> {
   return invoke("delete_bookmark", { id });
+}
+
+export type PlayerSettings = {
+  volume: number;
+  playback_speed: number;
+  window_size: { width: number; height: number } | null;
+  last_playlist: string[];
+  last_playlist_index: number | null;
+  last_position: number;
+  preferred_subtitle_lang: string | null;
+  preferred_audio_lang: string | null;
+};
+
+export async function loadPlayerSettings(): Promise<PlayerSettings> {
+  return invoke("load_player_settings");
+}
+
+export async function savePlayerSettings(settings: PlayerSettings): Promise<void> {
+  return invoke("save_player_settings", { settings });
+}
+
+export async function getPlayerSettings(): Promise<PlayerSettings> {
+  return invoke("get_player_settings");
+}
+
+export async function updatePlayerSettings(settings: PlayerSettings): Promise<void> {
+  return invoke("update_player_settings", { settings });
 }

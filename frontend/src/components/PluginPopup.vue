@@ -32,6 +32,18 @@
               @seek="onBookmarkSeek"
             />
             <EqualizerView v-else-if="pluginName === 'equalizer'" />
+            <SubtitleTrackView
+              v-else-if="pluginName === 'subtitle-tracks'"
+              :tracks="props.textTracks"
+              @toggle-track="$emit('toggle-track', $event)"
+              @load-external="$emit('load-external-subtitle')"
+              @clear-external="$emit('clear-external-subtitle')"
+            />
+            <AudioTrackView
+              v-else-if="pluginName === 'audio-tracks'"
+              :tracks="props.audioTracks"
+              @select-track="$emit('select-audio-track', $event)"
+            />
             <p v-else class="plugin-popup-placeholder">
               {{ pluginName }} plugin content appears here.
             </p>
@@ -45,12 +57,15 @@
 <script setup lang="ts">
 import { ref, watch } from "vue";
 import { getPluginDetail } from "../api/player";
+import type { TextTrackInfo, AudioTrackInfo } from "./PlayerView.vue";
 import SubtitleSearch from "./SubtitleSearch.vue";
 import MediaInfoView from "./MediaInfoView.vue";
 import PlaybackSpeedView from "./PlaybackSpeedView.vue";
 import BookmarkView from "./BookmarkView.vue";
 import ChapterView from "./ChapterView.vue";
 import EqualizerView from "./EqualizerView.vue";
+import SubtitleTrackView from "./SubtitleTrackView.vue";
+import AudioTrackView from "./AudioTrackView.vue";
 
 const props = withDefaults(
   defineProps<{
@@ -59,8 +74,10 @@ const props = withDefaults(
     popupWidth?: number;
     popupHeight?: number;
     playbackSpeed?: number;
+    textTracks?: TextTrackInfo[];
+    audioTracks?: AudioTrackInfo[];
   }>(),
-  { pluginName: "", visible: false, popupWidth: 400, popupHeight: 300, playbackSpeed: 1.0 },
+  { pluginName: "", visible: false, popupWidth: 400, popupHeight: 300, playbackSpeed: 1.0, textTracks: () => [], audioTracks: () => [] },
 );
 
 const emit = defineEmits<{
@@ -68,6 +85,10 @@ const emit = defineEmits<{
   downloaded: [path: string];
   "speed-change": [speed: number];
   seek: [position: number];
+  "toggle-track": [id: string];
+  "load-external-subtitle": [];
+  "clear-external-subtitle": [];
+  "select-audio-track": [id: string];
 }>();
 
 const loading = ref(false);

@@ -3,6 +3,7 @@
 
 use tauri::Manager;
 
+mod config;
 mod error;
 mod ipc;
 mod mpv;
@@ -25,6 +26,7 @@ fn main() {
             ipc::commands::get_startup_fatal_error,
             ipc::commands::retry_startup_probe,
             ipc::commands::pick_and_play_file,
+            ipc::commands::pick_subtitle_file,
             ipc::commands::emit_debug_video_error,
             ipc::commands::emit_debug_fatal_error,
             ipc::commands::open_log_directory,
@@ -42,7 +44,11 @@ fn main() {
             ipc::bookmark::list_bookmarks,
             ipc::bookmark::add_bookmark,
             ipc::bookmark::delete_bookmark,
-            ipc::chapter::list_chapters
+            ipc::chapter::list_chapters,
+            ipc::config::load_player_settings,
+            ipc::config::save_player_settings,
+            ipc::config::get_player_settings,
+            ipc::config::update_player_settings
         ])
         .setup(|app| {
             if let Err(startup_error) = mpv::core::startup_probe() {
@@ -51,6 +57,25 @@ fn main() {
                     error::fallback::handle_startup_error(app.handle(), &app_state, &startup_error)
                 {
                     eprintln!("failed to report startup fatal error: {report_error}");
+                }
+            }
+
+            // Load persisted settings and apply to state.
+            {
+                let app_state = app.state::<ipc::state::AppState>();
+                let settings = config::load_settings(app.handle());
+                {
+                    let mut player = app_state.player.lock().unwrap();
+                    player.volume = settings.volume.clamp(0.0, 100.0);
+                }
+                {
+                    let mut playlist = app_state.playlist.lock().unwrap();
+                    playlist.items = settings.last_playlist.clone();
+                    playlist.current_index = settings.last_playlist_index;
+                }
+                {
+                    let mut stored = app_state.settings.lock().unwrap();
+                    *stored = settings;
                 }
             }
 

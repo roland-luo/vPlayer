@@ -41,6 +41,24 @@ import { computed, ref, watch } from "vue";
 import { captureScreenshot as captureScreenshotApi } from "../api/player";
 import { convertFileSrc } from "@tauri-apps/api/core";
 
+export interface TextTrackInfo {
+  id: string;
+  kind: string;
+  label: string;
+  language: string;
+  mode: string;
+  src?: string;
+  external?: boolean;
+}
+
+export interface AudioTrackInfo {
+  id: string;
+  kind: string;
+  label: string;
+  language: string;
+  enabled: boolean;
+}
+
 const props = defineProps<{
   isPlaying: boolean;
   sourcePath: string;
@@ -55,14 +73,187 @@ const emit = defineEmits<{
   (e: "loaded-metadata", payload: { duration: number; width: number; height: number }): void;
   (e: "ended"): void;
   (e: "video-error", payload: { code: string; message: string }): void;
+  (e: "tracks-change", tracks: TextTrackInfo[]): void;
+  (e: "audio-tracks-change", tracks: AudioTrackInfo[]): void;
 }>();
 
 const videoEl = ref<HTMLVideoElement | null>(null);
+let externalTrackCount = 0;
 
 const sourceUrl = computed(() => {
   if (!props.sourcePath) return "";
   return convertFileSrc(props.sourcePath);
 });
+
+function readTextTracks(): TextTrackInfo[] {
+  const el = videoEl.value;
+  if (!el) return [];
+  const tracks: TextTrackInfo[] = [];
+  for (let i = 0; i < el.textTracks.length; i++) {
+    const t = el.textTracks[i];
+    tracks.push({
+      id: (t as any).id || `track-${i}`,
+      kind: t.kind,
+      label: t.label || `Track ${i + 1}`,
+      language: t.language || "",
+      mode: t.mode,
+    });
+  }
+  // Also read <track> elements to detect external tracks.
+  const trackEls = el.querySelectorAll("track");
+  trackEls.forEach((tr, idx) => {
+    const existing = tracks.find((t) => t.id === tr.id);
+    if (!existing) {
+      tracks.push({
+        id: tr.id || `ext-${idx}`,
+        kind: tr.kind || "subtitles",
+        label: tr.label || `External ${idx + 1}`,
+        language: tr.srclang || "",
+        mode: "disabled",
+        src: tr.src,
+        external: true,
+      });
+    }
+  });
+  return tracks;
+}
+
+function emitTracks() {
+  emit("tracks-change", readTextTracks());
+}
+
+function setupTrackListeners() {
+  const el = videoEl.value;
+  if (!el) return;
+  const handler = () => emitTracks();
+  el.textTracks.addEventListener("addtrack", handler);
+  el.textTracks.addEventListener("removetrack", handler);
+  el.textTracks.addEventListener("change", handler);
+  // Initial emit.
+  emitTracks();
+}
+
+function removeTrackListeners() {
+  const el = videoEl.value;
+  if (!el) return;
+  const handler = () => emitTracks();
+  el.textTracks.removeEventListener("addtrack", handler);
+  el.textTracks.removeEventListener("removetrack", handler);
+  el.textTracks.removeEventListener("change", handler);
+}
+
+/** Toggle a text track on/off. */
+function setTextTrackEnabled(trackId: string, enabled: boolean) {
+  const el = videoEl.value;
+  if (!el) return;
+  for (let i = 0; i < el.textTracks.length; i++) {
+    const t = el.textTracks[i];
+    const id = (t as any).id || `track-${i}`;
+    if (id === trackId) {
+      t.mode = enabled ? "showing" : "disabled";
+      emitTracks();
+      return;
+    }
+  }
+  // Check external <track> elements.
+  const trackEl = el.querySelector(`track#${CSS.escape(trackId)}`);
+  if (trackEl) {
+    trackEl.setAttribute("default", enabled ? "" : "false");
+    // Re-load to apply default change.
+    if (enabled) {
+      const clone = trackEl.cloneNode(true) as HTMLTrackElement;
+      clone.default = true;
+      trackEl.parentNode?.replaceChild(clone, trackEl);
+    }
+    emitTracks();
+  }
+}
+
+/** Add an external subtitle file as a <track> element. */
+async function addSubtitleTrack(path: string, label?: string, language?: string): Promise<void> {
+  const el = videoEl.value;
+  if (!el) return;
+  const url = convertFileSrc(path);
+  const track = document.createElement("track");
+  externalTrackCount++;
+  track.id = `ext-sub-${externalTrackCount}`;
+  track.kind = "subtitles";
+  track.label = label || `Subtitle ${externalTrackCount}`;
+  track.srclang = language || "";
+  track.src = url;
+  track.default = true;
+  el.appendChild(track);
+  emitTracks();
+}
+
+/** Remove all external subtitle tracks. */
+function clearExternalSubtitles() {
+  const el = videoEl.value;
+  if (!el) return;
+  el.querySelectorAll("track").forEach((t) => t.remove());
+  externalTrackCount = 0;
+  emitTracks();
+}
+
+// --- Audio tracks ---
+
+function readAudioTracks(): AudioTrackInfo[] {
+  const el = videoEl.value;
+  if (!el) return [];
+  const list = (el as any).audioTracks;
+  if (!list) return [];
+  const tracks: AudioTrackInfo[] = [];
+  for (let i = 0; i < list.length; i++) {
+    const t = list[i];
+    tracks.push({
+      id: String(t.id || i),
+      kind: t.kind || "",
+      label: t.label || `Audio ${i + 1}`,
+      language: t.language || "",
+      enabled: Boolean(t.enabled),
+    });
+  }
+  return tracks;
+}
+
+function emitAudioTracks() {
+  emit("audio-tracks-change", readAudioTracks());
+}
+
+function setupAudioTrackListeners() {
+  const el = videoEl.value;
+  if (!el) return;
+  const list = (el as any).audioTracks;
+  if (!list) return;
+  const handler = () => emitAudioTracks();
+  list.addEventListener?.("addtrack", handler);
+  list.addEventListener?.("removetrack", handler);
+  list.addEventListener?.("change", handler);
+  emitAudioTracks();
+}
+
+function removeAudioTrackListeners() {
+  const el = videoEl.value;
+  if (!el) return;
+  const list = (el as any).audioTracks;
+  if (!list) return;
+  const handler = () => emitAudioTracks();
+  list.removeEventListener?.("addtrack", handler);
+  list.removeEventListener?.("removetrack", handler);
+  list.removeEventListener?.("change", handler);
+}
+
+function setAudioTrackEnabled(trackId: string) {
+  const el = videoEl.value;
+  if (!el) return;
+  const list = (el as any).audioTracks;
+  if (!list) return;
+  for (let i = 0; i < list.length; i++) {
+    const t = list[i];
+    t.enabled = String(t.id || i) === trackId;
+  }
+  emitAudioTracks();
+}
 
 async function tryPlay() {
   if (!videoEl.value || !sourceUrl.value) return;
@@ -98,6 +289,8 @@ function handleLoadedMetadata() {
     width: videoEl.value.videoWidth,
     height: videoEl.value.videoHeight,
   });
+  setupTrackListeners();
+  setupAudioTrackListeners();
 }
 
 function handleTimeUpdate() {
@@ -136,6 +329,9 @@ watch(
   () => sourceUrl.value,
   async () => {
     if (!videoEl.value) return;
+    removeTrackListeners();
+    removeAudioTrackListeners();
+    clearExternalSubtitles();
     videoEl.value.load();
     if (props.isPlaying) {
       await tryPlay();
@@ -176,6 +372,12 @@ defineExpose({
   pausePlayback,
   captureScreenshot,
   setPlaybackSpeed,
+  addSubtitleTrack,
+  clearExternalSubtitles,
+  setTextTrackEnabled,
+  readTextTracks,
+  setAudioTrackEnabled,
+  readAudioTracks,
 });
 </script>
 

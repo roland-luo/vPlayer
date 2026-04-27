@@ -5,10 +5,15 @@
       @prev-file="handlePrevFile" @next-file="handleNextFile" @toggle-plugins="showPluginPanel = !showPluginPanel" />
     <PlayerView ref="playerViewRef" :is-playing="isPlaying" :source-path="currentMediaPath" :volume="volume"
       :playback-rate="playbackSpeed" @play="handlePlay" @pause="handlePause" @progress="handleViewProgress"
-      @loaded-metadata="handleLoadedMetadata" @ended="handleViewEnded" @video-error="handleVideoElementError" />
+      @loaded-metadata="handleLoadedMetadata" @ended="handleViewEnded" @video-error="handleVideoElementError"
+      @tracks-change="handleTracksChange"
+      @audio-tracks-change="handleAudioTracksChange" />
     <ControlBar :is-playing="isPlaying" :current-time="currentTime" :duration="duration" :volume="volume"
-      :plugins="plugins" @toggle-play="togglePlay" @seek="handleSeek" @volume-change="handleVolumeChange"
-      @screenshot="handleScreenshot" @plugin-click="openPluginPopup" />
+      :plugins="plugins" :has-subtitles="textTracks.length > 0" :has-audio-tracks="audioTracks.length > 0"
+      @toggle-play="togglePlay" @seek="handleSeek" @volume-change="handleVolumeChange"
+      @screenshot="handleScreenshot" @plugin-click="openPluginPopup"
+      @toggle-playlist="showPlaylistPanel = !showPlaylistPanel" @toggle-subtitles="openSubtitlePopup"
+      @toggle-audio-tracks="openAudioTrackPopup" />
     <div v-if="videoError" class="video-error-overlay">
       <div class="video-error-card">
         <div class="video-error-title">Video Error</div>
@@ -32,6 +37,21 @@
       </div>
     </Transition>
 
+    <!-- Playlist panel slide-out -->
+    <Transition name="panel-slide">
+      <div v-if="showPlaylistPanel" class="plugin-panel-overlay" @click.self="showPlaylistPanel = false">
+        <div class="plugin-panel">
+          <PlaylistPanel
+            :items="playlistState.items"
+            :current-index="playlistState.current_index"
+            @select="handlePlaylistSelect"
+            @remove="handlePlaylistRemove"
+            @add-file="handleOpenFile"
+          />
+        </div>
+      </div>
+    </Transition>
+
     <!-- Plugin popup -->
     <PluginPopup
       :plugin-name="pluginPopupName"
@@ -39,10 +59,16 @@
       :popup-width="pluginPopupWidth"
       :popup-height="pluginPopupHeight"
       :playback-speed="playbackSpeed"
+      :text-tracks="textTracks"
+      :audio-tracks="audioTracks"
       @close="pluginPopupVisible = false"
       @downloaded="handleSubtitleDownloaded"
       @speed-change="handleSpeedChange"
       @seek="handleSeek"
+      @toggle-track="handleToggleSubtitleTrack"
+      @load-external-subtitle="handleLoadExternalSubtitle"
+      @clear-external-subtitle="handleClearExternalSubtitles"
+      @select-audio-track="handleSelectAudioTrack"
     />
 
     <!-- Screenshot toast -->
@@ -94,8 +120,10 @@ import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import TopHud from "./components/TopHud.vue";
 import PlayerView from "./components/PlayerView.vue";
 import ControlBar from "./components/ControlBar.vue";
+import PlaylistPanel from "./components/PlaylistPanel.vue";
 import PluginManager from "./components/PluginManager.vue";
 import PluginPopup from "./components/PluginPopup.vue";
+import type { TextTrackInfo, AudioTrackInfo } from "./components/PlayerView.vue";
 import {
   type AppFatalError,
   emitDebugVideoError,
@@ -105,18 +133,22 @@ import {
   getPlayerState,
   getStartupFatalError,
   listPlugins,
+  loadPlayerSettings,
   openLogDirectory,
   pause,
   pickAndPlayFile,
+  pickSubtitleFile,
   playlistNext,
   playlistPrev,
   retryStartupProbe,
   resume,
   saveFatalDiagnosticReport,
+  savePlayerSettings,
   seek,
   setVolume,
   type PlaylistState,
   type PlayerState,
+  type PlayerSettings,
   type PluginInfo,
 } from "./api/player";
 
@@ -157,6 +189,7 @@ const rafId = ref<number | null>(null);
 const playbackAnchorPosition = ref(0);
 const playbackAnchorTs = ref(0);
 const showPluginPanel = ref(false);
+const showPlaylistPanel = ref(false);
 const pluginPopupName = ref("");
 const pluginPopupVisible = ref(false);
 const toastMessage = ref("");
@@ -164,6 +197,8 @@ const toastVisible = ref(false);
 let toastTimer: ReturnType<typeof setTimeout> | null = null;
 
 const playbackSpeed = ref(1.0);
+const textTracks = ref<TextTrackInfo[]>([]);
+const audioTracks = ref<AudioTrackInfo[]>([]);
 
 const plugins = ref<PluginInfo[]>([]);
 const pluginManagerKey = ref(0);
@@ -183,6 +218,12 @@ type PlayerViewExpose = ComponentPublicInstance & {
   tryPlay: () => Promise<void>;
   captureScreenshot: () => Promise<string>;
   setPlaybackSpeed: (speed: number) => void;
+  setTextTrackEnabled: (id: string, enabled: boolean) => void;
+  addSubtitleTrack: (path: string, label?: string, language?: string) => Promise<void>;
+  clearExternalSubtitles: () => void;
+  readTextTracks: () => TextTrackInfo[];
+  setAudioTrackEnabled: (id: string) => void;
+  readAudioTracks: () => AudioTrackInfo[];
 };
 const playerViewRef = ref<PlayerViewExpose | null>(null);
 
@@ -239,6 +280,25 @@ async function fetchPlugins() {
   }
 }
 
+async function persistSettings() {
+  if (!isTauriRuntime) return;
+  try {
+    const settings: PlayerSettings = {
+      volume: playerState.value.volume,
+      playback_speed: playbackSpeed.value,
+      window_size: null, // TODO: read from Tauri window API
+      last_playlist: playlistState.value.items,
+      last_playlist_index: playlistState.value.current_index ?? null,
+      last_position: playerState.value.position,
+      preferred_subtitle_lang: null,
+      preferred_audio_lang: null,
+    };
+    await savePlayerSettings(settings);
+  } catch (e) {
+    console.debug("[settings] persist failed", e);
+  }
+}
+
 function openPluginPopup(name: string) {
   const plugin = plugins.value.find((p) => p.name === name);
   pluginPopupName.value = name;
@@ -256,6 +316,7 @@ function handleSpeedChange(speed: number) {
   playbackSpeed.value = speed;
   playerViewRef.value?.setPlaybackSpeed(speed);
   showToast(`播放速度: ${speed.toFixed(2)}x`);
+  persistSettings();
 }
 
 function formatEventTimestamp(ts: number | null) {
@@ -340,6 +401,7 @@ async function handleVolumeChange(v: number) {
     return;
   }
   await setVolume(v);
+  persistSettings();
 }
 
 async function handleOpenFile() {
@@ -500,6 +562,43 @@ async function handleRetryStartup() {
   }
 }
 
+async function handlePlaylistSelect(index: number) {
+  if (!isTauriRuntime) return;
+  const path = playlistState.value.items[index];
+  if (!path) return;
+  playlistState.value.current_index = index;
+  setCurrentMediaPath(path);
+  updateTitleByPath(path);
+  await ensureVideoAutoplay();
+  persistSettings();
+}
+
+async function handlePlaylistRemove(index: number) {
+  playlistState.value.items.splice(index, 1);
+  if (playlistState.value.current_index !== null) {
+    if (index < playlistState.value.current_index) {
+      playlistState.value.current_index--;
+    } else if (index === playlistState.value.current_index) {
+      // Removed the currently playing item.
+      if (playlistState.value.items.length === 0) {
+        playlistState.value.current_index = null;
+        currentMediaPath.value = "";
+        currentTitle.value = "vPlayer";
+      } else if (index >= playlistState.value.items.length) {
+        playlistState.value.current_index = playlistState.value.items.length - 1;
+        const path = playlistState.value.items[playlistState.value.current_index];
+        setCurrentMediaPath(path);
+        updateTitleByPath(path);
+      } else {
+        const path = playlistState.value.items[index];
+        setCurrentMediaPath(path);
+        updateTitleByPath(path);
+      }
+    }
+  }
+  persistSettings();
+}
+
 async function handleScreenshot() {
   if (!isTauriRuntime || !playerViewRef.value) return;
   try {
@@ -577,6 +676,62 @@ function handleVideoElementError(payload: { code: string; message: string }) {
   videoError.value = payload;
 }
 
+function handleTracksChange(tracks: TextTrackInfo[]) {
+  textTracks.value = tracks;
+}
+
+function handleAudioTracksChange(tracks: AudioTrackInfo[]) {
+  audioTracks.value = tracks;
+}
+
+function openSubtitlePopup() {
+  pluginPopupName.value = "subtitle-tracks";
+  pluginPopupWidth.value = 380;
+  pluginPopupHeight.value = 320;
+  pluginPopupVisible.value = true;
+}
+
+function handleToggleSubtitleTrack(id: string) {
+  const track = textTracks.value.find((t) => t.id === id);
+  const nextEnabled = track?.mode !== "showing";
+  // Disable all other tracks first.
+  textTracks.value.forEach((t) => {
+    if (t.id !== id) {
+      playerViewRef.value?.setTextTrackEnabled(t.id, false);
+    }
+  });
+  playerViewRef.value?.setTextTrackEnabled(id, nextEnabled);
+}
+
+async function handleLoadExternalSubtitle() {
+  if (!isTauriRuntime) return;
+  try {
+    const selected = await pickSubtitleFile();
+    if (selected) {
+      await playerViewRef.value?.addSubtitleTrack(selected);
+      showToast("Subtitle loaded");
+    }
+  } catch (e) {
+    console.debug("[subtitle] load external failed", e);
+  }
+}
+
+function handleClearExternalSubtitles() {
+  playerViewRef.value?.clearExternalSubtitles();
+  showToast("External subtitles cleared");
+}
+
+function openAudioTrackPopup() {
+  pluginPopupName.value = "audio-tracks";
+  pluginPopupWidth.value = 380;
+  pluginPopupHeight.value = 280;
+  pluginPopupVisible.value = true;
+}
+
+function handleSelectAudioTrack(id: string) {
+  playerViewRef.value?.setAudioTrackEnabled(id);
+}
+
 async function ensureVideoAutoplay() {
   await nextTick();
   try {
@@ -592,6 +747,12 @@ onMounted(async () => {
   if (!isTauriRuntime) return;
 
   try {
+    // Load persisted settings and apply.
+    const settings = await loadPlayerSettings();
+    applyPlayerState({ volume: settings.volume });
+    playbackSpeed.value = settings.playback_speed;
+    playerViewRef.value?.setPlaybackSpeed(settings.playback_speed);
+
     applyPlayerState(await getPlayerState());
     await refreshPlaylistState();
     fatalError.value = await getStartupFatalError();

@@ -131,6 +131,14 @@ pub async fn pick_and_play_file(
 }
 
 #[tauri::command]
+pub async fn pick_subtitle_file() -> Result<Option<String>, String> {
+    let selected = rfd::FileDialog::new()
+        .add_filter("Subtitles", &["vtt", "srt", "ass", "ssa"])
+        .pick_file();
+    Ok(selected.map(|p| p.to_string_lossy().to_string()))
+}
+
+#[tauri::command]
 pub async fn playlist_next(
     app: AppHandle,
     app_state: State<'_, AppState>,
