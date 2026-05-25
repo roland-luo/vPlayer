@@ -6,14 +6,12 @@
     <PlayerView ref="playerViewRef" :is-playing="isPlaying" :source-path="currentMediaPath" :volume="volume"
       :playback-rate="playbackSpeed" @play="handlePlay" @pause="handlePause" @progress="handleViewProgress"
       @loaded-metadata="handleLoadedMetadata" @ended="handleViewEnded" @video-error="handleVideoElementError"
-      @tracks-change="handleTracksChange"
-      @audio-tracks-change="handleAudioTracksChange" />
+      @tracks-change="handleTracksChange" @audio-tracks-change="handleAudioTracksChange" />
     <ControlBar :is-playing="isPlaying" :current-time="currentTime" :duration="duration" :volume="volume"
       :plugins="plugins" :has-subtitles="textTracks.length > 0" :has-audio-tracks="audioTracks.length > 0"
-      @toggle-play="togglePlay" @seek="handleSeek" @volume-change="handleVolumeChange"
-      @screenshot="handleScreenshot" @plugin-click="openPluginPopup"
-      @toggle-playlist="showPlaylistPanel = !showPlaylistPanel" @toggle-subtitles="openSubtitlePopup"
-      @toggle-audio-tracks="openAudioTrackPopup" />
+      @toggle-play="togglePlay" @seek="handleSeek" @volume-change="handleVolumeChange" @screenshot="handleScreenshot"
+      @plugin-click="openPluginPopup" @toggle-playlist="showPlaylistPanel = !showPlaylistPanel"
+      @toggle-subtitles="openSubtitlePopup" @toggle-audio-tracks="openAudioTrackPopup" />
     <div v-if="videoError" class="video-error-overlay">
       <div class="video-error-card">
         <div class="video-error-title">Video Error</div>
@@ -41,35 +39,22 @@
     <Transition name="panel-slide">
       <div v-if="showPlaylistPanel" class="plugin-panel-overlay" @click.self="showPlaylistPanel = false">
         <div class="plugin-panel">
-          <PlaylistPanel
-            :items="playlistState.items"
-            :current-index="playlistState.current_index"
-            @select="handlePlaylistSelect"
-            @remove="handlePlaylistRemove"
-            @add-file="handleOpenFile"
-          />
+          <PlaylistPanel :items="playlistState.items" :current-index="playlistState.current_index"
+            @select="handlePlaylistSelect" @remove="handlePlaylistRemove" @add-file="handleOpenFile" />
         </div>
       </div>
     </Transition>
 
     <!-- Plugin popup -->
-    <PluginPopup
-      :plugin-name="pluginPopupName"
-      :visible="pluginPopupVisible"
-      :popup-width="pluginPopupWidth"
-      :popup-height="pluginPopupHeight"
-      :playback-speed="playbackSpeed"
-      :text-tracks="textTracks"
-      :audio-tracks="audioTracks"
-      @close="pluginPopupVisible = false"
-      @downloaded="handleSubtitleDownloaded"
-      @speed-change="handleSpeedChange"
-      @seek="handleSeek"
-      @toggle-track="handleToggleSubtitleTrack"
-      @load-external-subtitle="handleLoadExternalSubtitle"
-      @clear-external-subtitle="handleClearExternalSubtitles"
-      @select-audio-track="handleSelectAudioTrack"
-    />
+    <PluginPopup ref="pluginPopupRef" :plugin-name="pluginPopupName" :visible="pluginPopupVisible"
+      :popup-width="pluginPopupWidth" :popup-height="pluginPopupHeight" :playback-speed="playbackSpeed"
+      :text-tracks="textTracks" :audio-tracks="audioTracks" :current-position="currentTime"
+      :has-video="!!currentMediaPath" :current-video-name="currentTitle" :current-video-path="currentMediaPath"
+      :is-playing="isPlaying" @close="pluginPopupVisible = false"
+      @downloaded="handleSubtitleDownloaded" @speed-change="handleSpeedChange" @seek="handleSeek"
+      @pause="handlePause" @resume="handlePlay" @toggle-track="handleToggleSubtitleTrack"
+      @load-external-subtitle="handleLoadExternalSubtitle" @clear-external-subtitle="handleClearExternalSubtitles"
+      @select-audio-track="handleSelectAudioTrack" />
 
     <!-- Screenshot toast -->
     <Transition name="toast-fade">
@@ -124,6 +109,7 @@ import PlaylistPanel from "./components/PlaylistPanel.vue";
 import PluginManager from "./components/PluginManager.vue";
 import PluginPopup from "./components/PluginPopup.vue";
 import type { TextTrackInfo, AudioTrackInfo } from "./components/PlayerView.vue";
+import { useHotkey } from "./composables/useHotkeys";
 import {
   type AppFatalError,
   emitDebugVideoError,
@@ -204,6 +190,7 @@ const plugins = ref<PluginInfo[]>([]);
 const pluginManagerKey = ref(0);
 const pluginPopupWidth = ref(400);
 const pluginPopupHeight = ref(300);
+const pluginPopupRef = ref<ComponentPublicInstance & { focusBookmarkInput?: () => void } | null>(null);
 
 function showToast(message: string) {
   toastMessage.value = message;
@@ -306,6 +293,17 @@ function openPluginPopup(name: string) {
   pluginPopupHeight.value = plugin?.ui_popup_height ?? 300;
   pluginPopupVisible.value = true;
 }
+
+const isNotePopupOpen = computed(() => pluginPopupVisible.value && pluginPopupName.value === "bookmark");
+
+useHotkey("n", () => {
+  if (!isNotePopupOpen.value) {
+    openPluginPopup("bookmark");
+  }
+  nextTick(() => {
+    pluginPopupRef.value?.focusBookmarkInput?.();
+  });
+}, { enabled: () => !!currentMediaPath.value });
 
 function handleSubtitleDownloaded(path: string) {
   const filename = path.split(/[\\/]/).pop() || path;

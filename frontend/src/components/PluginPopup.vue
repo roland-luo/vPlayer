@@ -25,7 +25,15 @@
             />
             <BookmarkView
               v-else-if="pluginName === 'bookmark'"
+              ref="bookmarkViewRef"
+              :current-position="props.currentPosition"
+              :has-video="props.hasVideo"
+              :current-video-name="props.currentVideoName"
+              :current-video-path="props.currentVideoPath"
+              :is-playing="props.isPlaying"
               @seek="onBookmarkSeek"
+              @pause="onBookmarkPause"
+              @resume="onBookmarkResume"
             />
             <ChapterView
               v-else-if="pluginName === 'chapter'"
@@ -76,8 +84,13 @@ const props = withDefaults(
     playbackSpeed?: number;
     textTracks?: TextTrackInfo[];
     audioTracks?: AudioTrackInfo[];
+    currentPosition?: number;
+    hasVideo?: boolean;
+    currentVideoName?: string;
+    currentVideoPath?: string;
+    isPlaying?: boolean;
   }>(),
-  { pluginName: "", visible: false, popupWidth: 400, popupHeight: 300, playbackSpeed: 1.0, textTracks: () => [], audioTracks: () => [] },
+  { pluginName: "", visible: false, popupWidth: 400, popupHeight: 300, playbackSpeed: 1.0, textTracks: () => [], audioTracks: () => [], currentPosition: 0, hasVideo: false, currentVideoName: "", currentVideoPath: "", isPlaying: false },
 );
 
 const emit = defineEmits<{
@@ -89,10 +102,13 @@ const emit = defineEmits<{
   "load-external-subtitle": [];
   "clear-external-subtitle": [];
   "select-audio-track": [id: string];
+  pause: [];
+  resume: [];
 }>();
 
 const loading = ref(false);
 const error = ref("");
+const bookmarkViewRef = ref<InstanceType<typeof BookmarkView> | null>(null);
 
 function close() {
   emit("close");
@@ -110,6 +126,18 @@ function onSpeedChange(speed: number) {
 function onBookmarkSeek(position: number) {
   emit("seek", position);
 }
+
+function onBookmarkPause() {
+  emit("pause");
+}
+
+function onBookmarkResume() {
+  emit("resume");
+}
+
+defineExpose({
+  focusBookmarkInput: () => bookmarkViewRef.value?.focusInput(),
+});
 
 watch(
   () => props.visible,
