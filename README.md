@@ -14,7 +14,7 @@ pnpm tauri:dev
 
 ## 环境要求
 
-- pnpm tauri devNode.js 18+（建议 20+）
+- pnpm tauri dev Node.js 18+（建议 20+）
 - `pnpm`
 - Rust 工具链（`rustup`, `cargo`）
 - 平台依赖（Tauri 运行依赖，按官方文档安装）

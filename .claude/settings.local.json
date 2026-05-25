@@ -1,22 +1,8 @@
 {
-  "env": {
-    "ANTHROPIC_BASE_URL": "http://127.0.0.1:8202",
-    "ANTHROPIC_AUTH_TOKEN": "1213"
-  },
   "permissions": {
     "allow": [
-      "Bash(~/.claude/skills/gstack/bin/gstack-review-read:*)",
-      "Skill(plan-design-review)",
-      "WebFetch(domain:dribbble.com)",
-      "Bash(rustc --version)",
-      "Bash(pnpm install:*)",
-      "Bash(cargo check:*)",
-      "Bash(npx tsc:*)",
-      "Bash(npx vite:*)",
-      "Bash(cargo build:*)",
-      "Bash(cargo test:*)",
-      "Bash(pnpm build:*)",
-      "Bash(npx vue-tsc:*)"
+      "Bash(npx vue-tsc *)",
+      "Bash(npx vite *)"
     ]
   }
 }
