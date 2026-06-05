@@ -17,7 +17,8 @@ function isTypingTarget(target: EventTarget | null): boolean {
 
 function keyMatches(event: KeyboardEvent, key: string): boolean {
   const parts = key.toLowerCase().split(/[+]/);
-  const keyPart = parts[parts.length - 1];
+  const keyPartRaw = parts[parts.length - 1];
+  const keyPart = keyPartRaw === "space" ? " " : keyPartRaw;
   const modifiers = parts.slice(0, -1);
 
   const hasCtrl = modifiers.includes("ctrl") || modifiers.includes("control");

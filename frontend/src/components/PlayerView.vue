@@ -417,13 +417,13 @@ defineExpose({
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(ellipse 80% 50% at 50% 50%, rgba(0, 229, 255, 0.03) 0%, transparent 70%),
+    radial-gradient(ellipse 70% 45% at 50% 50%, rgba(0, 229, 255, 0.045) 0%, transparent 70%),
     repeating-linear-gradient(
       0deg,
       transparent,
       transparent 2px,
-      rgba(0, 229, 255, 0.012) 2px,
-      rgba(0, 229, 255, 0.012) 4px
+      rgba(0, 229, 255, 0.008) 2px,
+      rgba(0, 229, 255, 0.008) 4px
     );
   pointer-events: none;
 }
@@ -436,19 +436,23 @@ defineExpose({
 }
 
 .play-button {
-  width: 80px;
-  height: 80px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
+  width: 88px;
+  height: 88px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 50%;
+  background: rgba(10, 12, 18, 0.58);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.3s ease;
+  transition: border-color 180ms ease-out, box-shadow 180ms ease-out, transform 180ms ease-out;
 }
 
 .play-button:hover {
   border-color: var(--accent-cyan);
-  box-shadow: 0 0 30px rgba(0, 229, 255, 0.2);
+  box-shadow: 0 0 24px rgba(0, 229, 255, 0.22);
+  transform: scale(1.03);
 }
 
 .play-button svg {

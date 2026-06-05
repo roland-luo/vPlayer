@@ -102,6 +102,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref, type ComponentPublicInstance } from "vue";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import TopHud from "./components/TopHud.vue";
 import PlayerView from "./components/PlayerView.vue";
 import ControlBar from "./components/ControlBar.vue";
@@ -203,6 +204,7 @@ function showToast(message: string) {
 type PlayerViewExpose = ComponentPublicInstance & {
   seekTo: (position: number) => void;
   tryPlay: () => Promise<void>;
+  pausePlayback: () => void;
   captureScreenshot: () => Promise<string>;
   setPlaybackSpeed: (speed: number) => void;
   setTextTrackEnabled: (id: string, enabled: boolean) => void;
@@ -300,10 +302,71 @@ useHotkey("n", () => {
   if (!isNotePopupOpen.value) {
     openPluginPopup("bookmark");
   }
+  if (isPlaying.value) {
+    void handlePause();
+  }
   nextTick(() => {
     pluginPopupRef.value?.focusBookmarkInput?.();
   });
 }, { enabled: () => !!currentMediaPath.value });
+
+useHotkey("space", () => {
+  void togglePlay();
+}, { enabled: () => !!currentMediaPath.value });
+
+useHotkey("arrowleft", () => {
+  void handleSeek(Math.max(0, currentTime.value - 5));
+}, { enabled: () => !!currentMediaPath.value });
+
+useHotkey("arrowright", () => {
+  void handleSeek(Math.min(duration.value || Number.MAX_SAFE_INTEGER, currentTime.value + 5));
+}, { enabled: () => !!currentMediaPath.value });
+
+useHotkey("j", () => {
+  void handleSeek(Math.max(0, currentTime.value - 10));
+}, { enabled: () => !!currentMediaPath.value });
+
+useHotkey("k", () => {
+  void togglePlay();
+}, { enabled: () => !!currentMediaPath.value });
+
+useHotkey("l", () => {
+  void handleSeek(Math.min(duration.value || Number.MAX_SAFE_INTEGER, currentTime.value + 10));
+}, { enabled: () => !!currentMediaPath.value });
+
+useHotkey("f", () => {
+  void toggleFullscreen();
+}, { enabled: () => !!currentMediaPath.value });
+
+async function toggleFullscreen() {
+  try {
+    const appWindow = getCurrentWindow();
+    const isFullscreen = await appWindow.isFullscreen();
+    await appWindow.setFullscreen(!isFullscreen);
+    return;
+  } catch (error) {
+    console.debug("[fullscreen] Tauri API unavailable, fallback to DOM API", error);
+  }
+
+  const doc = document as Document & {
+    webkitExitFullscreen?: () => Promise<void> | void;
+    webkitFullscreenElement?: Element | null;
+  };
+  const el = document.documentElement as HTMLElement & {
+    webkitRequestFullscreen?: () => Promise<void> | void;
+  };
+
+  const request = el.requestFullscreen ?? el.webkitRequestFullscreen;
+  const exit = doc.exitFullscreen ?? doc.webkitExitFullscreen;
+  const isFullscreen = Boolean(doc.fullscreenElement || doc.webkitFullscreenElement);
+
+  if (!request || !exit) return;
+  if (!isFullscreen) {
+    await Promise.resolve(request.call(el));
+  } else {
+    await Promise.resolve(exit.call(doc));
+  }
+}
 
 function handleSubtitleDownloaded(path: string) {
   const filename = path.split(/[\\/]/).pop() || path;
@@ -369,11 +432,14 @@ async function handlePlay() {
 }
 
 async function handlePause() {
+  // Pause the HTML video element immediately to keep UI and actual playback in sync.
+  playerViewRef.value?.pausePlayback();
   if (!isTauriRuntime) {
     applyPlayerState({ state: "paused" });
     return;
   }
   await pause();
+  applyPlayerState({ state: "paused" });
 }
 
 async function togglePlay() {

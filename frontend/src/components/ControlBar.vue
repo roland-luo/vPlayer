@@ -1,103 +1,78 @@
 <template>
   <div class="control-bar" :class="{ visible: showControls }">
-    <div class="progress-bar" @click="handleProgressClick">
-      <div class="progress-fill" :style="{ width: progressPercent + '%' }">
-        <div class="progress-thumb"></div>
+    <div class="seek-wrap" @click="handleProgressClick">
+      <div class="seek-track">
+        <div class="seek-fill" :style="{ width: progressPercent + '%' }"></div>
+        <div class="seek-thumb" :style="{ left: progressPercent + '%' }"></div>
       </div>
     </div>
+
     <div class="controls-row">
-      <div class="controls-left">
-        <button class="control-btn" @click="$emit('toggle-play')">
-          <svg v-if="!isPlaying" viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
-            <path d="M8 5v14l11-7z" />
-          </svg>
-          <svg v-else viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
-            <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
-          </svg>
+      <div class="cluster left">
+        <button class="icon-btn" @click="$emit('toggle-play')" :title="isPlaying ? 'Pause' : 'Play'">
+          <svg v-if="!isPlaying" viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+          <svg v-else viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
         </button>
-        <button class="control-btn" @click="skipBackward">
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
-            <path d="M11 18V6l-8.5 6 8.5 6zm.5-6l8.5 6V6l-8.5 6z" />
-          </svg>
+        <button class="icon-btn" @click="skipBackward" title="Back 10s">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M11 18V6l-8.5 6 8.5 6zm.5-6l8.5 6V6l-8.5 6z"/></svg>
         </button>
-        <button class="control-btn" @click="skipForward">
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
-            <path d="M4 18l8.5-6L4 6v12zm9-12v12l8.5-6L13 6z" />
-          </svg>
+        <button class="icon-btn" @click="skipForward" title="Forward 10s">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M4 18l8.5-6L4 6v12zm9-12v12l8.5-6L13 6z"/></svg>
         </button>
-        <div class="time-display">
+        <div class="time-display" aria-live="polite">
           <span class="current">{{ formatTime(currentTime) }}</span>
-          <span class="separator"> / </span>
-          <span>{{ formatTime(duration) }}</span>
+          <span class="sep">/</span>
+          <span class="total">{{ formatTime(duration) }}</span>
         </div>
       </div>
-      <div class="controls-right">
-        <div class="volume-control">
-          <button class="control-btn" @click="toggleMute">
+
+      <div class="cluster right">
+        <div class="volume-wrap">
+          <button class="icon-btn" @click="toggleMute" title="Mute">
             <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
-              <path
-                d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z" />
+              <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
             </svg>
           </button>
           <input type="range" class="volume-slider" min="0" max="100" :value="volume" @input="handleVolumeInput" />
         </div>
-        <button class="control-btn" @click="$emit('screenshot')" title="Take Screenshot">
+
+        <button class="icon-btn" @click="$emit('screenshot')" title="Screenshot">
           <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
             <path d="M9 2L7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2h-3.17L15 2H9zm3 15c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z"/>
-            <path d="M12 9c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
           </svg>
         </button>
-        <button
-          v-for="plugin in pluginButtons"
-          :key="plugin.name"
-          class="control-btn plugin-btn"
-          @click="$emit('plugin-click', plugin.name)"
-          :title="plugin.ui_button_label ?? plugin.name"
-        >
-          <span class="plugin-btn-label">{{ plugin.ui_button_label ?? plugin.name }}</span>
-        </button>
-        <button
-          v-if="hasSubtitles"
-          class="control-btn"
-          @click="$emit('toggle-subtitles')"
-          title="Subtitles"
-        >
+
+        <button class="icon-btn" @click="toggleMoreActions" title="More">
           <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
-            <path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zM4 18V6h16v12H4zM6 10h8v2H6zm0 4h12v2H6z"/>
+            <circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/>
           </svg>
         </button>
-        <button
-          v-if="hasAudioTracks"
-          class="control-btn"
-          @click="$emit('toggle-audio-tracks')"
-          title="Audio Tracks"
-        >
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
-            <path d="M12 3v9.28c-.47-.17-.97-.28-1.5-.28C8.01 12 6 14.01 6 16.5S8.01 21 10.5 21c2.31 0 4.2-1.75 4.45-4H15V6h4V3h-7z"/>
-          </svg>
-        </button>
-        <button class="control-btn" @click="$emit('toggle-playlist')" title="Playlist">
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
-            <path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/>
-          </svg>
-        </button>
-        <button class="control-btn" @click="openSettings">
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
-            <path d="M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.5.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1.01c.52.4 1.08.73 1.69.98l.38 2.65c.04.24.25.42.5.42h4c.25 0 .46-.18.5-.42l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1.01c.22.08.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z" />
-          </svg>
-        </button>
-        <button class="control-btn" @click="toggleFullscreen">
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
-            <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z" />
-          </svg>
+
+        <button class="icon-btn" @click="toggleFullscreen" title="Fullscreen">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
         </button>
       </div>
+    </div>
+
+    <div v-if="showMoreActions" class="more-actions">
+      <button class="more-btn" @click="$emit('toggle-playlist')">Playlist</button>
+      <button v-if="hasSubtitles" class="more-btn" @click="$emit('toggle-subtitles')">Subtitles</button>
+      <button v-if="hasAudioTracks" class="more-btn" @click="$emit('toggle-audio-tracks')">Audio</button>
+      <button
+        v-for="plugin in pluginButtons"
+        :key="plugin.name"
+        class="more-btn"
+        @click="$emit('plugin-click', plugin.name)"
+      >
+        {{ plugin.ui_button_label ?? plugin.name }}
+      </button>
+      <button class="more-btn" @click="openSettings">Settings</button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import type { PluginInfo } from "../api/player";
 
@@ -124,6 +99,9 @@ const emit = defineEmits<{
 
 const showControls = ref(true);
 const isMuted = ref(false);
+const showMoreActions = ref(false);
+let hideTimer: ReturnType<typeof setTimeout> | null = null;
+const AUTO_HIDE_MS = 2500;
 
 const pluginButtons = computed(() => {
   return (props.plugins ?? []).filter((p) => p.ui_button_label);
@@ -135,11 +113,14 @@ const progressPercent = computed(() => {
 });
 
 function formatTime(seconds: number): string {
-  if (!seconds || seconds < 0) return "00:00:00";
+  if (!seconds || seconds < 0) return "00:00";
   const h = Math.floor(seconds / 3600);
   const m = Math.floor((seconds % 3600) / 60);
   const s = Math.floor(seconds % 60);
-  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  if (h > 0) {
+    return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  }
+  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
 function handleProgressClick(event: MouseEvent) {
@@ -168,13 +149,21 @@ function toggleMute() {
   emit("volume-change", isMuted.value ? 0 : props.volume);
 }
 
+function toggleMoreActions() {
+  showMoreActions.value = !showMoreActions.value;
+  if (showMoreActions.value) {
+    showControls.value = true;
+    clearHideTimer();
+  } else {
+    scheduleAutoHide();
+  }
+}
+
 function openSettings() {
   // TODO: open settings panel
 }
 
 async function toggleFullscreen() {
-  // Always try Tauri window fullscreen first.
-  // Runtime sniffing via window globals is unreliable across Tauri/WebView versions.
   try {
     const appWindow = getCurrentWindow();
     const isFullscreen = await appWindow.isFullscreen();
@@ -196,34 +185,76 @@ async function toggleFullscreen() {
   const exit = doc.exitFullscreen ?? doc.webkitExitFullscreen;
   const isFullscreen = Boolean(doc.fullscreenElement || doc.webkitFullscreenElement);
 
-  if (!request || !exit) {
-    console.debug("[fullscreen] Fullscreen API is not available in current runtime.");
-    return;
-  }
-
+  if (!request || !exit) return;
   if (!isFullscreen) {
     await Promise.resolve(request.call(el));
   } else {
     await Promise.resolve(exit.call(doc));
   }
 }
+
+function clearHideTimer() {
+  if (hideTimer) {
+    clearTimeout(hideTimer);
+    hideTimer = null;
+  }
+}
+
+function scheduleAutoHide() {
+  clearHideTimer();
+  if (!props.isPlaying || showMoreActions.value) {
+    showControls.value = true;
+    return;
+  }
+  hideTimer = setTimeout(() => {
+    if (props.isPlaying && !showMoreActions.value) {
+      showControls.value = false;
+    }
+  }, AUTO_HIDE_MS);
+}
+
+function revealControls() {
+  showControls.value = true;
+  scheduleAutoHide();
+}
+
+watch(
+  () => props.isPlaying,
+  (playing) => {
+    if (!playing) {
+      showControls.value = true;
+      clearHideTimer();
+      return;
+    }
+    scheduleAutoHide();
+  },
+  { immediate: true },
+);
+
+onMounted(() => {
+  window.addEventListener("mousemove", revealControls);
+  window.addEventListener("click", revealControls);
+});
+
+onUnmounted(() => {
+  window.removeEventListener("mousemove", revealControls);
+  window.removeEventListener("click", revealControls);
+  clearHideTimer();
+});
 </script>
 
 <style scoped>
 .control-bar {
   position: absolute;
-  bottom: 0;
   left: 0;
   right: 0;
-  background: linear-gradient(to top,
-      rgba(8, 8, 12, 0.95) 0%,
-      rgba(8, 8, 12, 0.6) 50%,
-      transparent 100%);
-  padding: 48px 24px 16px;
-  z-index: 10;
+  bottom: 0;
+  z-index: 20;
+  padding: 14px 16px 12px;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.84) 0%, rgba(0, 0, 0, 0.42) 58%, transparent 100%);
   opacity: 0;
   transform: translateY(8px);
-  transition: opacity 200ms ease-out, transform 200ms ease-out;
+  transition: opacity 180ms ease-out, transform 180ms ease-out;
   pointer-events: none;
 }
 
@@ -233,129 +264,155 @@ async function toggleFullscreen() {
   pointer-events: auto;
 }
 
-.progress-bar {
-  width: 100%;
-  height: 4px;
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: 2px;
-  position: relative;
-  margin-bottom: 16px;
+.seek-wrap {
   cursor: pointer;
-  transition: height 100ms ease;
+  padding: 8px 0;
 }
 
-.progress-bar:hover {
-  height: 6px;
-}
-
-.progress-fill {
-  height: 100%;
-  background: var(--accent-cyan);
-  border-radius: 2px;
+.seek-track {
   position: relative;
-  animation: bar-glow 3s ease-in-out infinite;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.26);
 }
 
-.progress-thumb {
+.seek-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: #ff2d2d;
+}
+
+.seek-thumb {
   position: absolute;
-  right: -7px;
   top: 50%;
-  transform: translateY(-50%);
-  width: 14px;
-  height: 14px;
-  background: var(--accent-cyan);
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
-  box-shadow: 0 0 16px rgba(0, 229, 255, 0.6);
+  background: #ff2d2d;
+  transform: translate(-50%, -50%) scale(0);
+  transition: transform 140ms ease-out;
+}
+
+.seek-wrap:hover .seek-thumb {
+  transform: translate(-50%, -50%) scale(1);
 }
 
 .controls-row {
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  align-items: center;
+  gap: 14px;
 }
 
-.controls-left,
-.controls-right {
+.cluster {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 6px;
 }
 
-.control-btn {
-  background: none;
+.icon-btn {
+  width: 36px;
+  height: 36px;
   border: none;
-  color: var(--text-primary);
-  cursor: pointer;
-  padding: 4px;
-  display: flex;
+  border-radius: 999px;
+  background: transparent;
+  color: #fff;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition: color 150ms ease-out;
+  cursor: pointer;
+  transition: background 140ms ease-out;
 }
 
-.control-btn:hover {
-  color: var(--accent-cyan);
-}
-
-.plugin-btn-label {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  white-space: nowrap;
+.icon-btn:hover {
+  background: rgba(255, 255, 255, 0.18);
 }
 
 .time-display {
-  font-family: var(--font-mono);
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-left: 6px;
+  font-family: var(--font-body);
   font-size: 13px;
-  color: var(--text-muted);
-  letter-spacing: 0.02em;
-  margin-left: 8px;
+  color: #f1f1f1;
+  font-variant-numeric: tabular-nums;
 }
 
-.time-display .current {
-  color: var(--text-primary);
+.time-display .total {
+  color: #b8b8b8;
 }
 
-.time-display .separator {
-  margin: 0 4px;
+.time-display .sep {
+  color: #999;
 }
 
-.volume-control {
+.volume-wrap {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
 }
 
 .volume-slider {
   -webkit-appearance: none;
   appearance: none;
-  width: 80px;
+  width: 88px;
   height: 4px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 2px;
-  outline: none;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.35);
   cursor: pointer;
 }
 
 .volume-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 12px;
-  height: 12px;
-  background: var(--accent-cyan);
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
-  box-shadow: 0 0 8px rgba(0, 229, 255, 0.4);
-  cursor: pointer;
+  background: #fff;
 }
 
 .volume-slider::-moz-range-thumb {
-  width: 12px;
-  height: 12px;
-  background: var(--accent-cyan);
-  border-radius: 50%;
-  box-shadow: 0 0 8px rgba(0, 229, 255, 0.4);
-  cursor: pointer;
+  width: 10px;
+  height: 10px;
   border: none;
+  border-radius: 50%;
+  background: #fff;
+}
+
+.more-actions {
+  margin-top: 10px;
+  padding: 10px;
+  border-radius: 12px;
+  background: rgba(20, 20, 20, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.more-btn {
+  border: none;
+  border-radius: 999px;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #f3f3f3;
+  font-family: var(--font-body);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.more-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+@media (max-width: 900px) {
+  .volume-slider {
+    display: none;
+  }
+
+  .time-display {
+    font-size: 12px;
+  }
 }
 </style>
