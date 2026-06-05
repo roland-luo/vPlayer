@@ -27,6 +27,9 @@
         EXPORT
       </button>
     </div>
+    <div class="note-session-stats">
+      本次会话: 新增 {{ sessionAddCount }} · 回跳 {{ sessionSeekCount }} · 导出 {{ sessionExportCount }}
+    </div>
 
     <!-- Position chip -->
     <div class="note-chip" :class="{ paused: isPausedByNote }">
@@ -170,6 +173,9 @@ let toastTimer: ReturnType<typeof setTimeout> | null = null;
 const SEEK_OFFSET = 3;
 const AUTO_PAUSE_SETTING_KEY = "vplayer:note-auto-pause";
 const autoPauseOnFocus = ref(true);
+const sessionAddCount = ref(0);
+const sessionSeekCount = ref(0);
+const sessionExportCount = ref(0);
 
 const canAdd = computed(() => !adding.value && newName.value.trim().length > 0 && props.hasVideo);
 
@@ -218,7 +224,8 @@ async function handleAdd() {
   if (!name || !props.hasVideo) return;
   adding.value = true;
   try {
-    await addBookmark(name);
+    await addBookmark(name, props.currentPosition ?? 0);
+    sessionAddCount.value += 1;
     newName.value = "";
     const el = textareaRef.value;
     if (el) el.style.height = "auto";
@@ -245,6 +252,7 @@ async function handleDelete(id: string) {
 
 function seekToNote(bm: BookmarkEntry) {
   const target = Math.max(0, bm.position - SEEK_OFFSET);
+  sessionSeekCount.value += 1;
   emit("seek", target);
   emit("resume");
 }
@@ -309,6 +317,7 @@ async function handleExport() {
   const markdown = lines.join("\n");
   try {
     await navigator.clipboard.writeText(markdown);
+    sessionExportCount.value += 1;
     showToast(`已复制 ${bookmarks.value.length} 条笔记到剪贴板`);
   } catch {
     showToast("复制失败");
@@ -407,6 +416,13 @@ defineExpose({
   font-size: 11px;
   letter-spacing: 0.04em;
   font-weight: 500;
+  color: var(--text-muted);
+}
+
+.note-session-stats {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.03em;
   color: var(--text-muted);
 }
 

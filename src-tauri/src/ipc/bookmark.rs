@@ -89,8 +89,9 @@ pub async fn add_bookmark(
     app: AppHandle,
     app_state: State<'_, AppState>,
     name: String,
+    position: Option<f64>,
 ) -> Result<BookmarkEntry, String> {
-    let (video_path, position) = {
+    let (video_path, player_position) = {
         let playlist = app_state.playlist.lock().map_err(|e| format!("{e}"))?;
         let player = app_state.player.lock().map_err(|e| format!("{e}"))?;
         let idx = playlist
@@ -103,12 +104,13 @@ pub async fn add_bookmark(
             .ok_or_else(|| "invalid playlist index".to_string())?;
         (path, player.position)
     };
+    let bookmark_position = position.unwrap_or(player_position);
 
     let entry = BookmarkEntry {
         id: generate_id(),
         name,
         video: video_path,
-        position,
+        position: bookmark_position,
         created_at: std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap_or_default()

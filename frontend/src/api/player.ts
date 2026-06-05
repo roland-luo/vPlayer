@@ -177,8 +177,8 @@ export async function listBookmarks(): Promise<BookmarkEntry[]> {
   return invoke("list_bookmarks");
 }
 
-export async function addBookmark(name: string): Promise<BookmarkEntry> {
-  return invoke("add_bookmark", { name });
+export async function addBookmark(name: string, position?: number): Promise<BookmarkEntry> {
+  return invoke("add_bookmark", { name, position: position ?? null });
 }
 
 export async function deleteBookmark(id: string): Promise<void> {
