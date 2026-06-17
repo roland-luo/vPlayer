@@ -34,7 +34,7 @@
           "$VIDEO/**"
         ]
       },
-      "capabilities": ["default"]
+      "capabilities": ["default", "dialog"]
     }
   },
   "bundle": {
