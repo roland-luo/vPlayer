@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
@@ -56,7 +57,7 @@ pub async fn export_notes_to_markdown(
     }
 
     let chapters = if request.group_by_chapters {
-        load_chapters(&app_state)?
+        load_chapters(&video_path)?
     } else {
         vec![]
     };
@@ -121,42 +122,35 @@ fn load_selected_bookmarks(
     video_path: &str,
     note_ids: &[String],
 ) -> Result<Vec<BookmarkEntry>, String> {
+    let id_set: HashSet<&str> = note_ids.iter().map(|s| s.as_str()).collect();
     let path = crate::ipc::bookmark::bookmarks_path(app)?;
     let all = crate::ipc::bookmark::load_bookmarks(&path);
     let filtered: Vec<BookmarkEntry> = all
         .into_iter()
-        .filter(|b| b.video == video_path && note_ids.contains(&b.id))
+        .filter(|b| b.video == video_path && id_set.contains(b.id.as_str()))
         .collect();
     Ok(filtered)
 }
 
-fn load_chapters(app_state: &AppState) -> Result<Vec<ChapterEntry>, String> {
+fn load_chapters(video_path: &str) -> Result<Vec<ChapterEntry>, String> {
     // We intentionally do not call the async list_chapters command here.
     // Instead, synchronously run ffprobe to avoid async command recursion.
-    let video_path = {
-        let playlist = app_state.playlist.lock().map_err(|e| format!("{e}"))?;
-        let idx = playlist
-            .current_index
-            .ok_or_else(|| "no video is playing".to_string())?;
-        playlist
-            .items
-            .get(idx)
-            .cloned()
-            .ok_or_else(|| "invalid playlist index".to_string())?
-    };
-
     let output = std::process::Command::new("ffprobe")
         .arg("-v")
         .arg("quiet")
         .arg("-print_format")
         .arg("json")
         .arg("-show_chapters")
-        .arg(&video_path)
+        .arg(video_path)
         .output()
         .map_err(|e| format!("ffprobe failed: {e}"))?;
 
     if !output.status.success() {
-        return Ok(vec![]);
+        return Err(format!(
+            "EXPORT_CHAPTERS_FAILED: ffprobe exited with status {:?}: {}",
+            output.status,
+            String::from_utf8_lossy(&output.stderr)
+        ));
     }
 
     let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap_or_default();
@@ -258,11 +252,11 @@ fn render_note(
         match capture_frame_to_path(video_path, bm.position, &image_path) {
             Ok(()) => {
                 *screenshot_count += 1;
-                lines.push(format!("![screenshot](assets/{})\n", image_name));
+                lines.push(format!("![screenshot](assets/{})", image_name));
             }
             Err(e) => {
                 eprintln!("[tutorial-export] screenshot failed at {}: {}", time_str, e);
-                lines.push(format!("> 截图失败：{}\n", e));
+                lines.push(format!("> 截图失败：{}", e));
             }
         }
     }

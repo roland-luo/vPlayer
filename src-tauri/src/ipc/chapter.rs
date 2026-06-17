@@ -12,13 +12,6 @@ pub struct ChapterEntry {
     pub end: f64,
 }
 
-fn format_seconds(secs: f64) -> String {
-    let h = (secs / 3600.0) as u32;
-    let m = ((secs % 3600.0) / 60.0) as u32;
-    let s = secs % 60.0;
-    format!("{:02}:{:02}:{:05.2}", h, m, s)
-}
-
 /// Tauri command: extract chapter markers from the current video via ffprobe.
 #[tauri::command]
 pub async fn list_chapters(
