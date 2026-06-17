@@ -16,13 +16,13 @@ pub struct BookmarkEntry {
     pub created_at: u64,
 }
 
-fn bookmarks_path(app: &AppHandle) -> Result<PathBuf, String> {
+pub fn bookmarks_path(app: &AppHandle) -> Result<PathBuf, String> {
     let dir = utils::paths::app_data_dir(app)?;
     std::fs::create_dir_all(&dir).map_err(|e| format!("create data dir: {e}"))?;
     Ok(dir.join("bookmarks.json"))
 }
 
-fn load_bookmarks(path: &PathBuf) -> Vec<BookmarkEntry> {
+pub fn load_bookmarks(path: &PathBuf) -> Vec<BookmarkEntry> {
     if !path.exists() {
         return vec![];
     }

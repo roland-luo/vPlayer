@@ -48,7 +48,8 @@ fn main() {
             ipc::config::load_player_settings,
             ipc::config::save_player_settings,
             ipc::config::get_player_settings,
-            ipc::config::update_player_settings
+            ipc::config::update_player_settings,
+            ipc::tutorial_export::export_notes_to_markdown
         ])
         .setup(|app| {
             if let Err(startup_error) = mpv::core::startup_probe() {
