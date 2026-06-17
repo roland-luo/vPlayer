@@ -7,3 +7,6 @@ pub mod mediainfo;
 pub mod state;
 pub mod subtitle;
 pub mod tutorial_export;
+
+#[cfg(test)]
+mod tutorial_export_test;
