@@ -423,6 +423,36 @@ pub async fn open_log_directory(app: AppHandle) -> Result<String, String> {
     Ok(dir.display().to_string())
 }
 
+/// Extract a single frame from `video_path` at `position` seconds into `output_path`.
+/// Returns Ok(()) on success. Uses ffmpeg.
+pub fn capture_frame_to_path(
+    video_path: &str,
+    position: f64,
+    output_path: &std::path::Path,
+) -> Result<(), String> {
+    let clamped_position = position.max(0.0);
+    let output = std::process::Command::new("ffmpeg")
+        .arg("-ss")
+        .arg(format!("{:.3}", clamped_position))
+        .arg("-i")
+        .arg(video_path)
+        .arg("-vframes")
+        .arg("1")
+        .arg("-q:v")
+        .arg("2")
+        .arg("-y")
+        .arg(output_path)
+        .output()
+        .map_err(|e| format!("failed to execute ffmpeg: {e}"))?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(format!("ffmpeg failed: {stderr}"));
+    }
+
+    Ok(())
+}
+
 #[tauri::command]
 pub async fn capture_screenshot(
     app: AppHandle,
@@ -455,24 +485,7 @@ pub async fn capture_screenshot(
     // Extract frame to a temp file via ffmpeg.
     let temp_dir = std::env::temp_dir();
     let temp_path = temp_dir.join(&default_name);
-    let output = std::process::Command::new("ffmpeg")
-        .arg("-ss")
-        .arg(format!("{:.3}", position))
-        .arg("-i")
-        .arg(&path)
-        .arg("-vframes")
-        .arg("1")
-        .arg("-q:v")
-        .arg("2")
-        .arg("-y")
-        .arg(&temp_path)
-        .output()
-        .map_err(|e| format!("failed to execute ffmpeg: {e}"))?;
-
-    if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        return Err(format!("ffmpeg failed: {stderr}"));
-    }
+    capture_frame_to_path(&path, position, &temp_path)?;
 
     // Show native Save As dialog.
     let save_path = rfd::FileDialog::new()
