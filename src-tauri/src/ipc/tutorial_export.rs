@@ -84,7 +84,7 @@ pub async fn export_notes_to_markdown(
     })
 }
 
-fn validate_filename(filename: &str) -> Result<(), String> {
+pub fn validate_filename(filename: &str) -> Result<(), String> {
     if filename.is_empty() {
         return Err("EXPORT_INVALID_FILENAME: filename is empty".to_string());
     }
