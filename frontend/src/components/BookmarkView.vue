@@ -160,9 +160,6 @@ const error = ref("");
 const textareaRef = ref<HTMLTextAreaElement | null>(null);
 const isPausedByNote = ref(false);
 const wasPlayingBeforeFocus = ref(false);
-const toastVisible = ref(false);
-const toastMessage = ref("");
-let toastTimer: ReturnType<typeof setTimeout> | null = null;
 
 const SEEK_OFFSET = 3;
 const AUTO_PAUSE_SETTING_KEY = "vplayer:note-auto-pause";
@@ -185,18 +182,6 @@ function formatTime(seconds: number): string {
   const s = Math.floor(seconds % 60);
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
-
-function showToast(message: string) {
-  toastMessage.value = message;
-  toastVisible.value = true;
-  if (toastTimer) clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => {
-    toastVisible.value = false;
-  }, 2000);
-}
-
-// Prevent TS6133: showToast is used by template toast display and kept for future error feedback
-void showToast;
 
 async function fetchBookmarks() {
   if (!props.hasVideo) {
@@ -340,7 +325,7 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
-  if (toastTimer) clearTimeout(toastTimer);
+  // nothing to clean up
 });
 
 defineExpose({
