@@ -150,6 +150,7 @@ const emit = defineEmits<{
   (e: "pause"): void;
   (e: "resume"): void;
   (e: "open-exporter"): void;
+  (e: "bookmarks-change", bookmarks: BookmarkEntry[]): void;
 }>();
 
 const bookmarks = ref<BookmarkEntry[]>([]);
@@ -186,12 +187,14 @@ function formatTime(seconds: number): string {
 async function fetchBookmarks() {
   if (!props.hasVideo) {
     bookmarks.value = [];
+    emit("bookmarks-change", []);
     return;
   }
   loading.value = true;
   error.value = "";
   try {
     bookmarks.value = await listBookmarks();
+    emit("bookmarks-change", bookmarks.value);
   } catch (e) {
     error.value = "加载笔记失败";
     console.debug("[note] list failed", e);
@@ -226,6 +229,7 @@ async function handleDelete(id: string) {
   try {
     await deleteBookmark(id);
     bookmarks.value = bookmarks.value.filter((b) => b.id !== id);
+    emit("bookmarks-change", bookmarks.value);
   } catch (e) {
     console.debug("[note] delete failed", e);
   }

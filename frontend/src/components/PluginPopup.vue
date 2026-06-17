@@ -35,6 +35,7 @@
               @pause="onBookmarkPause"
               @resume="onBookmarkResume"
               @open-exporter="emit('open-exporter')"
+              @bookmarks-change="emit('bookmarks-change', $event)"
             />
             <ChapterView
               v-else-if="pluginName === 'chapter'"
@@ -67,6 +68,7 @@
 import { ref, watch } from "vue";
 import { getPluginDetail } from "../api/player";
 import type { TextTrackInfo, AudioTrackInfo } from "./PlayerView.vue";
+import type { BookmarkEntry } from "../api/player";
 import SubtitleSearch from "./SubtitleSearch.vue";
 import MediaInfoView from "./MediaInfoView.vue";
 import PlaybackSpeedView from "./PlaybackSpeedView.vue";
@@ -106,6 +108,7 @@ const emit = defineEmits<{
   pause: [];
   resume: [];
   "open-exporter": [];
+  "bookmarks-change": [bookmarks: BookmarkEntry[]];
 }>();
 
 const loading = ref(false);

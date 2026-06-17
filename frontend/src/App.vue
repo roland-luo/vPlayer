@@ -54,7 +54,7 @@
       @downloaded="handleSubtitleDownloaded" @speed-change="handleSpeedChange" @seek="handleSeek"
       @pause="handlePause" @resume="handlePlay" @toggle-track="handleToggleSubtitleTrack"
       @load-external-subtitle="handleLoadExternalSubtitle" @clear-external-subtitle="handleClearExternalSubtitles"
-      @select-audio-track="handleSelectAudioTrack" @open-exporter="openTutorialExporter" />
+      @select-audio-track="handleSelectAudioTrack" @open-exporter="openTutorialExporter" @bookmarks-change="updateBookmarks" />
 
     <TutorialExporterModal
       :visible="tutorialExporterVisible"
@@ -315,7 +315,11 @@ function openTutorialExporter() {
   tutorialExporterVisible.value = true;
 }
 
-const currentBookmarks = computed(() => pluginPopupRef.value?.getBookmarks?.() ?? []);
+const currentBookmarks = ref<BookmarkEntry[]>([]);
+
+function updateBookmarks(bookmarks: BookmarkEntry[]) {
+  currentBookmarks.value = bookmarks;
+}
 
 const isNotePopupOpen = computed(() => pluginPopupVisible.value && pluginPopupName.value === "bookmark");
 
