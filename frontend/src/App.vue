@@ -206,7 +206,9 @@ const plugins = ref<PluginInfo[]>([]);
 const pluginManagerKey = ref(0);
 const pluginPopupWidth = ref(400);
 const pluginPopupHeight = ref(300);
-const pluginPopupRef = ref<ComponentPublicInstance & { focusBookmarkInput?: () => void; getBookmarks?: () => BookmarkEntry[] } | null>(null);
+const pluginPopupRef = ref<ComponentPublicInstance & {
+  focusBookmarkInput?: () => void;
+} | null>(null);
 
 function showToast(message: string) {
   toastMessage.value = message;

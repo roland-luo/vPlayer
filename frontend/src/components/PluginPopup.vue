@@ -142,7 +142,6 @@ function onBookmarkResume() {
 
 defineExpose({
   focusBookmarkInput: () => bookmarkViewRef.value?.focusInput?.(),
-  getBookmarks: () => bookmarkViewRef.value?.getBookmarks?.() ?? [],
 });
 
 watch(

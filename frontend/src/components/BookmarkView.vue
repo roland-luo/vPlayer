@@ -312,6 +312,7 @@ watch(() => [props.hasVideo, props.currentVideoPath], ([hasVideo]) => {
     fetchBookmarks();
   } else {
     bookmarks.value = [];
+    emit("bookmarks-change", []);
   }
   newName.value = "";
   isPausedByNote.value = false;
@@ -334,7 +335,6 @@ onUnmounted(() => {
 
 defineExpose({
   focusInput,
-  getBookmarks: () => bookmarks.value,
 });
 </script>
 
