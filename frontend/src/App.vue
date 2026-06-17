@@ -54,7 +54,18 @@
       @downloaded="handleSubtitleDownloaded" @speed-change="handleSpeedChange" @seek="handleSeek"
       @pause="handlePause" @resume="handlePlay" @toggle-track="handleToggleSubtitleTrack"
       @load-external-subtitle="handleLoadExternalSubtitle" @clear-external-subtitle="handleClearExternalSubtitles"
-      @select-audio-track="handleSelectAudioTrack" />
+      @select-audio-track="handleSelectAudioTrack" @open-exporter="openTutorialExporter" />
+
+    <TutorialExporterModal
+      :visible="tutorialExporterVisible"
+      :has-video="!!currentMediaPath"
+      :current-video-path="currentMediaPath"
+      :current-video-name="currentTitle"
+      :bookmarks="currentBookmarks"
+      @close="tutorialExporterVisible = false"
+      @success="showToast"
+      @error="showToast"
+    />
 
     <!-- Screenshot toast -->
     <Transition name="toast-fade">
@@ -109,6 +120,7 @@ import ControlBar from "./components/ControlBar.vue";
 import PlaylistPanel from "./components/PlaylistPanel.vue";
 import PluginManager from "./components/PluginManager.vue";
 import PluginPopup from "./components/PluginPopup.vue";
+import TutorialExporterModal from "./components/TutorialExporterModal.vue";
 import type { TextTrackInfo, AudioTrackInfo } from "./components/PlayerView.vue";
 import { useHotkey } from "./composables/useHotkeys";
 import {
@@ -137,6 +149,7 @@ import {
   type PlayerState,
   type PlayerSettings,
   type PluginInfo,
+  type BookmarkEntry,
 } from "./api/player";
 
 const playerState = ref<PlayerState>({
@@ -183,6 +196,8 @@ const toastMessage = ref("");
 const toastVisible = ref(false);
 let toastTimer: ReturnType<typeof setTimeout> | null = null;
 
+const tutorialExporterVisible = ref(false);
+
 const playbackSpeed = ref(1.0);
 const textTracks = ref<TextTrackInfo[]>([]);
 const audioTracks = ref<AudioTrackInfo[]>([]);
@@ -191,7 +206,7 @@ const plugins = ref<PluginInfo[]>([]);
 const pluginManagerKey = ref(0);
 const pluginPopupWidth = ref(400);
 const pluginPopupHeight = ref(300);
-const pluginPopupRef = ref<ComponentPublicInstance & { focusBookmarkInput?: () => void } | null>(null);
+const pluginPopupRef = ref<ComponentPublicInstance & { focusBookmarkInput?: () => void; getBookmarks?: () => BookmarkEntry[] } | null>(null);
 
 function showToast(message: string) {
   toastMessage.value = message;
@@ -295,6 +310,12 @@ function openPluginPopup(name: string) {
   pluginPopupHeight.value = plugin?.ui_popup_height ?? 300;
   pluginPopupVisible.value = true;
 }
+
+function openTutorialExporter() {
+  tutorialExporterVisible.value = true;
+}
+
+const currentBookmarks = computed(() => pluginPopupRef.value?.getBookmarks?.() ?? []);
 
 const isNotePopupOpen = computed(() => pluginPopupVisible.value && pluginPopupName.value === "bookmark");
 

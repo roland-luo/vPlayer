@@ -34,6 +34,7 @@
               @seek="onBookmarkSeek"
               @pause="onBookmarkPause"
               @resume="onBookmarkResume"
+              @open-exporter="emit('open-exporter')"
             />
             <ChapterView
               v-else-if="pluginName === 'chapter'"
@@ -104,6 +105,7 @@ const emit = defineEmits<{
   "select-audio-track": [id: string];
   pause: [];
   resume: [];
+  "open-exporter": [];
 }>();
 
 const loading = ref(false);
@@ -136,7 +138,8 @@ function onBookmarkResume() {
 }
 
 defineExpose({
-  focusBookmarkInput: () => bookmarkViewRef.value?.focusInput(),
+  focusBookmarkInput: () => bookmarkViewRef.value?.focusInput?.(),
+  getBookmarks: () => bookmarkViewRef.value?.getBookmarks?.() ?? [],
 });
 
 watch(
