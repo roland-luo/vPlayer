@@ -1,0 +1,15 @@
+{"type":"server-started","port":54830,"host":"127.0.0.1","url_host":"localhost","url":"http://localhost:54830","screen_dir":"/Users/roland/Desktop/appsRoland/vPlayer/.superpowers/brainstorm/25058-1781600686/content","state_dir":"/Users/roland/Desktop/appsRoland/vPlayer/.superpowers/brainstorm/25058-1781600686/state"}
+{"type":"screen-added","file":"/Users/roland/Desktop/appsRoland/vPlayer/.superpowers/brainstorm/25058-1781600686/content/feature-directions.html"}
+{"source":"user-event","type":"click","text":"A\n    \n      闪卡复习模式\n      把笔记自动转成问答题卡片，复习时先显示问题，再回放对应视频片段揭晓答案。支持 Anki 导出。","choice":"flashcard","id":null,"timestamp":1781600881011}
+{"source":"user-event","type":"click","text":"B\n    \n      标签 + 知识脑图\n      给笔记打 #标签，自动生成按标签聚合的时间线或简易脑图，发现知识点之间的关联。","choice":"tags-map","id":null,"timestamp":1781600893116}
+{"source":"user-event","type":"click","text":"D\n    \n      学习报告生成\n      按视频生成结构化学习摘要：章节大纲 + 关键截图 + 笔记整理，导出为 Markdown / PDF。","choice":"smart-report","id":null,"timestamp":1781600894359}
+{"source":"user-event","type":"click","text":"A\n    \n      闪卡复习模式\n      把笔记自动转成问答题卡片，复习时先显示问题，再回放对应视频片段揭晓答案。支持 Anki 导出。","choice":"flashcard","id":null,"timestamp":1781600897627}
+{"source":"user-event","type":"click","text":"D\n    \n      学习报告生成\n      按视频生成结构化学习摘要：章节大纲 + 关键截图 + 笔记整理，导出为 Markdown / PDF。","choice":"smart-report","id":null,"timestamp":1781601710532}
+{"source":"user-event","type":"click","text":"D\n    \n      学习报告生成\n      按视频生成结构化学习摘要：章节大纲 + 关键截图 + 笔记整理，导出为 Markdown / PDF。","choice":"smart-report","id":null,"timestamp":1781601711063}
+{"source":"user-event","type":"click","text":"D\n    \n      学习报告生成\n      按视频生成结构化学习摘要：章节大纲 + 关键截图 + 笔记整理，导出为 Markdown / PDF。","choice":"smart-report","id":null,"timestamp":1781601711248}
+{"source":"user-event","type":"click","text":"D\n    \n      学习报告生成\n      按视频生成结构化学习摘要：章节大纲 + 关键截图 + 笔记整理，导出为 Markdown / PDF。","choice":"smart-report","id":null,"timestamp":1781601711863}
+{"type":"screen-added","file":"/Users/roland/Desktop/appsRoland/vPlayer/.superpowers/brainstorm/25058-1781600686/content/approaches.html"}
+{"source":"user-event","type":"click","text":"C\n    \n      Tutorial Exporter · 教程导出器\n      一键把\"章节 + 笔记 + 截图 + 代码 + 时间戳\"整理成 GitHub 友好的 Markdown 文章。可直接贴到 Gist 或博客。\n      \n        适合：输出学习笔记、写技术博客\n        输出：.md 文件（含代码块、截图、跳转链接）\n        投入：较小（复用现有笔记 + 截图插件）","choice":"tutorialexporter","id":null,"timestamp":1781602431705}
+{"type":"screen-added","file":"/Users/roland/Desktop/appsRoland/vPlayer/.superpowers/brainstorm/25058-1781600686/content/design-ui-export.html"}
+{"type":"screen-added","file":"/Users/roland/Desktop/appsRoland/vPlayer/.superpowers/brainstorm/25058-1781600686/content/waiting.html"}
+{"type":"server-stopped","reason":"idle timeout"}

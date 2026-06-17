@@ -1,0 +1,47 @@
+<h2>3 个可能的方向</h2>
+<p class="subtitle">针对"技术教程 + GitHub/博客输出"场景，各有侧重</p>
+
+<div class="options" data-multiselect>
+  <div class="option" data-choice="codecards" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>CodeCard · 代码片段复习</h3>
+      <p>自动识别笔记里的代码块/命令，生成正面是"任务/问题"、背面是"代码+视频回放"的卡片。复习时先自己写，再对照原视频。</p>
+      <ul>
+        <li>适合：跟练教程、命令行操作、API 用法</li>
+        <li>输出：Anki / Markdown 卡片集合</li>
+        <li>投入：中等（需代码块识别 + 卡片 UI）</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="option" data-choice="taggraph" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>TagGraph · 标签知识图谱</h3>
+      <p>给笔记打 #react、#rust、#async 等标签，生成按技术点聚合的交互式图谱或时间线。点击标签跳转到对应视频片段。</p>
+      <ul>
+        <li>适合：系列教程、跨视频知识串联</li>
+        <li>输出：Mermaid / Graphviz / 标签索引页</li>
+        <li>投入：中等（标签解析 + 图谱渲染）</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="option" data-choice="tutorialexporter" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Tutorial Exporter · 教程导出器</h3>
+      <p>一键把"章节 + 笔记 + 截图 + 代码 + 时间戳"整理成 GitHub 友好的 Markdown 文章。可直接贴到 Gist 或博客。</p>
+      <ul>
+        <li>适合：输出学习笔记、写技术博客</li>
+        <li>输出：.md 文件（含代码块、截图、跳转链接）</li>
+        <li>投入：较小（复用现有笔记 + 截图插件）</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <p class="subtitle">我的建议：先做 C（导出器），因为它复用现有能力最多，能快速验证；同时把 B（标签）作为轻量前置，让导出的文章更有结构。</p>
+</div>

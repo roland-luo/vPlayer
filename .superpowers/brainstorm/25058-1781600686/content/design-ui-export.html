@@ -1,0 +1,115 @@
+<h2>第二部分：UI 与导出样例</h2>
+<p class="subtitle">导出弹窗长什么样，以及最终 Markdown 的效果</p>
+
+<div class="split">
+  <div class="mockup">
+    <div class="mockup-header">导出弹窗 UI</div>
+    <div class="mockup-body" style="font-family: system-ui, sans-serif; background: #12121A; color: #E8ECF1; padding: 16px; border-radius: 8px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <span style="font-family: 'Rajdhani', sans-serif; text-transform:uppercase; letter-spacing:0.08em; font-size:11px; font-weight:600;">Export Tutorial</span>
+        <span style="color:#6B7280; font-size:11px;">12 notes</span>
+      </div>
+
+      <div style="margin-bottom:12px;">
+        <label style="display:block; font-size:11px; color:#6B7280; margin-bottom:4px;">File name</label>
+        <input class="mock-input" value="rust-async-tutorial.md" style="width:100%; background:#1A1A24; border:1px solid rgba(255,255,255,0.06); color:#E8ECF1; padding:6px 8px; border-radius:4px; font-size:12px;">
+      </div>
+
+      <div style="display:flex; gap:12px; margin-bottom:12px; font-size:11px;">
+        <label style="display:flex; align-items:center; gap:4px; color:#6B7280;">
+          <input type="checkbox" checked> Include screenshots
+        </label>
+        <label style="display:flex; align-items:center; gap:4px; color:#6B7280;">
+          <input type="checkbox" checked> Group by chapters
+        </label>
+      </div>
+
+      <div style="max-height:180px; overflow:auto; border:1px solid rgba(255,255,255,0.06); border-radius:8px; padding:8px;">
+        <div style="display:flex; align-items:flex-start; gap:8px; padding:6px 0; border-bottom:1px solid rgba(255,255,255,0.04);">
+          <input type="checkbox" checked style="margin-top:2px;">
+          <div style="font-size:11px;">
+            <span style="font-family:'JetBrains Mono', monospace; color:#00E5FF;">00:03:42</span>
+            <span style="color:#E8ECF1; margin-left:6px;">创建 tokio runtime 的两种写法</span>
+          </div>
+        </div>
+        <div style="display:flex; align-items:flex-start; gap:8px; padding:6px 0; border-bottom:1px solid rgba(255,255,255,0.04);">
+          <input type="checkbox" checked style="margin-top:2px;">
+          <div style="font-size:11px;">
+            <span style="font-family:'JetBrains Mono', monospace; color:#00E5FF;">00:08:15</span>
+            <span style="color:#E8ECF1; margin-left:6px;">await 和 block_on 的区别</span>
+          </div>
+        </div>
+        <div style="display:flex; align-items:flex-start; gap:8px; padding:6px 0; opacity:0.5;">
+          <input type="checkbox" style="margin-top:2px;">
+          <div style="font-size:11px;">
+            <span style="font-family:'JetBrains Mono', monospace; color:#00E5FF;">00:12:30</span>
+            <span style="color:#E8ECF1; margin-left:6px;">（空笔记占位）</span>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:12px;">
+        <button style="background:transparent; border:1px solid rgba(255,255,255,0.06); color:#E8ECF1; padding:4px 12px; border-radius:4px; font-size:11px;">Cancel</button>
+        <button style="background:#00E5FF; color:#08080C; border:none; padding:4px 12px; border-radius:4px; font-size:11px; font-weight:600;">Export .md</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="mockup">
+    <div class="mockup-header">导出的 Markdown 样例</div>
+    <div class="mockup-body" style="font-family: 'JetBrains Mono', monospace; font-size: 11px; background: #12121A; color: #E8ECF1; padding: 16px; border-radius: 8px; overflow: auto;">
+      <pre style="margin:0; white-space:pre-wrap;"># Rust Async 教程笔记
+
+> 源视频：rust-async-tutorial.mp4
+> 导出时间：2026-06-16
+
+---
+
+## 01. Tokio Runtime
+
+### [00:03:42] 创建 tokio runtime 的两种写法
+
+一种是使用 `#[tokio::main]` 宏：
+
+```rust
+#[tokio::main]
+async fn main() {
+    // ...
+}
+```
+
+另一种是手动创建 Runtime：
+
+```rust
+let rt = tokio::runtime::Runtime::new().unwrap();
+rt.block_on(async {
+    // ...
+});
+```
+
+![screenshot](assets/00_03_42.png)
+
+### [00:08:15] await 和 block_on 的区别
+
+- `await` 必须在 async 函数内使用
+- `block_on` 会阻塞当前线程直到 future 完成
+
+---
+
+## 02. Spawn Tasks
+
+...
+      </pre>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>关键设计决策</h3>
+  <ul>
+    <li><strong>截图存储：</strong>导出的 `.md` 旁边放一个 `assets/` 目录，图片用相对路径引用。</li>
+    <li><strong>代码块：</strong>笔记里用 ` ```rust ` 包裹的文本会原样保留到 Markdown 中。</li>
+    <li><strong>章节分组：</strong>如果视频有章节（Chapter 插件已有数据），按章节作为 Markdown 二级标题；否则按时间线平铺。</li>
+    <li><strong>时间戳链接：</strong>`[00:03:42](vplayer://open?file=...&t=222)`，未来可支持点击跳回播放器。</li>
+  </ul>
+</div>
